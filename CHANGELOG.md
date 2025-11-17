@@ -5,7 +5,28 @@ All notable changes to [TyConf](https://github.com/barabasz/tyconf) will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### 0.9.5 (2025-11-16)
+## [1.0.0] - 2025-11-18
+
+### Added
+- Initial release of TyConf (Typed Config)
+- Comprehensive test suite with pytest
+- Complete documentation (User Guide, API Reference, Best Practices)
+- Example applications demonstrating real-world usage
+- Additional test for Union types and copy() method
+
+### Changed
+- Updated documentation and examples
+
+### Fixed
+- `_validate_type` extract base type for generics inside Union
+
+### 0.9.5 (2025-11-17)
+
+### Changed
+- Package name: PyConf → TyConf
+- All internal references and error messages updated
+
+### 0.9.4 (2025-11-16)
 
 ### Added
 - Display formatting constants as class attributes

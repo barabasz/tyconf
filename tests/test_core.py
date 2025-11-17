@@ -191,3 +191,108 @@ def test_unhashable():
 
     with pytest.raises(TypeError, match="unhashable"):
         hash(cfg)
+
+def test_validate_generic_list():
+    """Test validation of generic list types."""
+    cfg = TyConf(tags=(list[str], []))
+    
+    # Should accept lists
+    cfg.tags = ["a", "b", "c"]
+    assert cfg.tags == ["a", "b", "c"]
+    
+    # Should reject non-lists
+    with pytest.raises(TypeError):
+        cfg.tags = "not a list"
+
+
+def test_validate_generic_dict():
+    """Test validation of generic dict types."""
+    cfg = TyConf(mapping=(dict[str, int], {}))
+    
+    # Should accept dicts
+    cfg.mapping = {"x": 1, "y": 2}
+    assert cfg.mapping == {"x": 1, "y": 2}
+    
+    # Should reject non-dicts
+    with pytest.raises(TypeError):
+        cfg.mapping = "not a dict"
+
+
+def test_union_with_generics():
+    """Test Union containing generic types."""
+    cfg = TyConf(
+        data=(Union[list[int], str], [])
+    )
+    
+    # List should work
+    cfg.data = [1, 2, 3]
+    assert cfg.data == [1, 2, 3]
+    
+    # String should work
+    cfg.data = "text"
+    assert cfg.data == "text"
+    
+    # Other types should fail
+    with pytest.raises(TypeError):
+        cfg.data = 123
+
+def test_copy_preserves_original_defaults():
+    """Test that copy() preserves original default values."""
+    cfg = TyConf(
+        port=(int, 8080),
+        debug=(bool, False)
+    )
+    
+    # Modify values
+    cfg.port = 3000
+    cfg.debug = True
+    
+    # Create copy
+    copy = cfg.copy()
+    
+    # Copy has current values
+    assert copy.port == 3000
+    assert copy.debug is True
+    
+    # Reset should restore ORIGINAL defaults, not copied values
+    copy.reset()
+    assert copy.port == 8080  # Back to original default
+    assert copy.debug is False  # Back to original default
+
+
+def test_copy_independence():
+    """Test that copy is independent from original."""
+    original = TyConf(value=(int, 100))
+    copy = original.copy()
+    
+    # Modify copy
+    copy.value = 200
+    
+    # Original unchanged
+    assert original.value == 100
+    
+    # Modify original
+    original.value = 300
+    
+    # Copy unchanged
+    assert copy.value == 200
+
+
+def test_copy_readonly_properties():
+    """Test that readonly properties are copied correctly."""
+    cfg = TyConf(
+        VERSION=(str, "1.0.0", True),
+        debug=(bool, False)
+    )
+    
+    copy = cfg.copy()
+    
+    # Readonly flag preserved
+    assert copy.get_property_info('VERSION').readonly is True
+    
+    # Value preserved
+    assert copy.VERSION == "1.0.0"
+    
+    # Still readonly
+    with pytest.raises(AttributeError, match="read-only"):
+        copy.VERSION = "2.0.0"

@@ -167,27 +167,48 @@ class TyConf:
     def copy(self) -> "TyConf":
         """
         Create an unfrozen copy of the TyConf.
+        
+        The copy preserves:
+        - Original default values (so reset() works correctly)
+        - Current property values
+        - Property types and readonly flags
+        
+        The copy is always unfrozen, even if the original is frozen.
 
         Returns:
             A new TyConf instance with the same properties and current values.
 
         Examples:
             >>> config = TyConf(debug=(bool, True))
+            >>> config.debug = False
             >>> config.freeze()
             >>> copy = config.copy()
             >>> copy.frozen
             False
+            >>> copy.debug
+            False
+            >>> copy.reset()  # Returns to original default (True)
+            >>> copy.debug
+            True
         """
         new_config = TyConf()
 
-        # Copy properties and current values
+        # Copy properties with original defaults and current values
         for name, prop in self._properties.items():
+            # Step 1: Add property with ORIGINAL default value
+            # This ensures reset() will restore to the original default
             new_config.add(
                 name=name,
                 prop_type=prop.prop_type,
-                default_value=self._values[name],
+                default_value=prop.default_value,  # Original default, NOT current value
                 readonly=prop.readonly,
             )
+            
+            # Step 2: Set CURRENT value from source
+            # Direct access to _values is intentional here to:
+            # - Avoid triggering validation again (already validated)
+            # - Bypass readonly checks (we're copying, not modifying)
+            new_config._values[name] = self._values[name]
 
         return new_config
 
@@ -349,24 +370,22 @@ class TyConf:
     def _validate_type(self, name: str, value: Any, expected_type: type):
         """
         Validate that a value matches the expected type.
-
-        Supports Optional and Union types from typing module.
-
+        Supports Optional, Union and Generics (e.g. list[str], dict[str, int]).
+        
         Args:
             name: Property name (for error messages).
             value: Value to validate.
             expected_type: Expected type.
-
+            
         Raises:
             TypeError: If value doesn't match expected_type.
         """
-        # Handle None for Optional types
         origin = get_origin(expected_type)
 
         if origin is Union:
             # Handle Optional[T] (Union[T, None]) and Union types
             args = get_args(expected_type)
-
+            
             # Check if value matches any of the union types
             if value is None and type(None) in args:
                 return
@@ -374,8 +393,13 @@ class TyConf:
             for arg in args:
                 if arg is type(None):
                     continue
+                
+                # Extract base type for generics inside Union
+                # e.g. Union[list[int], str] -> check against list, not list[int]
+                check_type = get_origin(arg) or arg
+                
                 try:
-                    if isinstance(value, arg):
+                    if isinstance(value, check_type):
                         return
                 except TypeError:
                     # Some types from typing module don't work with isinstance
@@ -383,7 +407,7 @@ class TyConf:
 
             # If we get here, value doesn't match any union type
             type_names = ", ".join(
-                arg.__name__ if hasattr(arg, "__name__") else str(arg)
+                getattr(arg, "__name__", str(arg))
                 for arg in args
                 if arg is not type(None)
             )
@@ -391,10 +415,14 @@ class TyConf:
                 f"Property '{name}': expected one of ({type_names}), got {type(value).__name__}"
             )
 
-        # Handle regular types
-        if not isinstance(value, expected_type):
+        # Handle regular types and generics (e.g. list[str] -> list)
+        check_type = origin or expected_type
+        
+        if not isinstance(value, check_type):
+            # Format type name safely
+            expected_name = getattr(expected_type, "__name__", str(expected_type))
             raise TypeError(
-                f"Property '{name}': expected {expected_type.__name__}, "
+                f"Property '{name}': expected {expected_name}, "
                 f"got {type(value).__name__}"
             )
 

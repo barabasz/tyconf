@@ -9,7 +9,7 @@ from .core import TyConf, PropertyDescriptor
 
 __all__ = ["TyConf", "PropertyDescriptor"]
 __version__ = "1.0.0"
-__date__ = "2025-11-17"
+__date__ = "2025-11-18"
 __author__ = "barabasz"
 __license__ = "MIT"
 __copyright__ = "2025, barabasz"
