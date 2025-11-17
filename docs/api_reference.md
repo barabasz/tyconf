@@ -39,7 +39,7 @@ Add a new property to the configuration.
 
 **Parameters:**
 - `name`: Property name
-- `prop_type`: Expected type (supports `Optional` and `Union`)
+- `prop_type`: Expected type (supports `Optional`, `Union`, and generics like `list[str]`)
 - `default_value`: Default value for the property
 - `readonly`: If `True`, property cannot be modified after creation
 
@@ -51,6 +51,7 @@ Add a new property to the configuration.
 ```python
 config = TyConf()
 config.add('host', str, 'localhost')
+config.add('tags', list[str], [])
 config.add('VERSION', str, '1.0.0', readonly=True)
 ```
 
@@ -102,15 +103,38 @@ copy() -> TyConf
 
 Create an unfrozen copy of the configuration.
 
+The copy preserves:
+- **Original default values** (so `reset()` restores to original defaults, not copied values)
+- **Current property values**
+- **Property types and readonly flags**
+
+The copy is always unfrozen, even if the original is frozen.
+
 **Returns:**
 - New `TyConf` instance with same properties and current values
 
 **Example:**
 ```python
-config = TyConf(debug=(bool, True))
+config = TyConf(debug=(bool, True), port=(int, 8080))
+
+# Modify values
+config.debug = False
+config.port = 3000
 config.freeze()
-backup = config.copy()  # backup.frozen is False
+
+# Create copy - preserves current values
+backup = config.copy()
+backup.frozen        # False (copy is unfrozen)
+backup.debug         # False (current value)
+backup.port          # 3000 (current value)
+
+# Reset restores ORIGINAL defaults, not copied values
+backup.reset()
+backup.debug         # True (original default)
+backup.port          # 8080 (original default)
 ```
+
+**Important:** The copy preserves original default values, ensuring that `reset()` works correctly even on modified configurations.
 
 ##### reset()
 
@@ -431,6 +455,20 @@ TyConf supports the following types:
 - `tuple` - Tuple
 - Any other Python type
 
+### Generic Types (Python 3.9+)
+
+```python
+config = TyConf(
+    tags=(list[str], []),
+    mapping=(dict[str, int], {}),
+    coordinates=(tuple[float, float], (0.0, 0.0))
+)
+
+config.tags = ["a", "b", "c"]        # OK
+config.mapping = {"x": 1, "y": 2}    # OK
+config.coordinates = (1.5, 2.5)      # OK
+```
+
 ### Typing Module Types
 
 #### Optional
@@ -459,6 +497,20 @@ config = TyConf(
 config.port = 3000    # OK (int)
 config.port = "auto"  # OK (str)
 config.port = 3.14    # TypeError (float)
+```
+
+#### Union with Generics
+
+```python
+from typing import Union
+
+config = TyConf(
+    data=(Union[list[int], str], [])
+)
+
+config.data = [1, 2, 3]  # OK (list)
+config.data = "text"     # OK (str)
+config.data = 123        # TypeError
 ```
 
 ---

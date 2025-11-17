@@ -12,13 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite with pytest
 - Complete documentation (User Guide, API Reference, Best Practices)
 - Example applications demonstrating real-world usage
-- Additional test for Union types and copy() method
+
+### Fixed
+- `_validate_type()` now correctly handles generic types (list[str], dict[str, int])
+- Fixed TypeError when using isinstance() with parameterized generics
+- Fixed Union types containing generics (e.g., Union[list[int], str])
+- `copy()` now preserves original default values for correct reset() behavior
+- Copying modified configuration no longer breaks reset() functionality
 
 ### Changed
 - Updated documentation and examples
-
-### Fixed
-- `_validate_type` extract base type for generics inside Union
+- Improved docstrings for `copy()` method
 
 ### 0.9.5 (2025-11-17)
 
