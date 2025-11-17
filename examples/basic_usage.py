@@ -30,4 +30,3 @@ if "debug" in config:
 # Iterate over properties
 for key, value in config.items():
     print(f"{key} = {value}")
-    
