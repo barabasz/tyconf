@@ -5,19 +5,6 @@ All notable changes to [TyConf](https://github.com/barabasz/tyconf) will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-11-17
-
-### Added
-- Initial release of TyConf (Typed Config)
-- Comprehensive test suite with pytest
-- Complete documentation (User Guide, API Reference, Best Practices)
-- Example applications demonstrating real-world usage
-
-### Changed
-- Package name: PyConf → TyConf
-- All internal references and error messages updated
-- Updated documentation and examples
-
 ### 0.9.5 (2025-11-16)
 
 ### Added
