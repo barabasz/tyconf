@@ -236,6 +236,7 @@ def test_union_with_generics():
     with pytest.raises(TypeError):
         cfg.data = 123
 
+
 def test_copy_preserves_original_defaults():
     """Test that copy() preserves original default values."""
     cfg = TyConf(

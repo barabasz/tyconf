@@ -367,6 +367,39 @@ class TyConf:
         """Return an iterator over (name, value) pairs."""
         return iter((name, self._values[name]) for name in self._properties.keys())
 
+    def _set_property(self, name: str, value: Any) -> None:
+        """
+        Internal helper to set property value with validation.
+        
+        This method contains the shared logic for __setattr__ and __setitem__,
+        following the DRY (Don't Repeat Yourself) principle.
+        
+        Args:
+            name: Property name.
+            value: Value to set.
+            
+        Raises:
+            AttributeError: If TyConf is frozen or property is read-only.
+            KeyError: If property doesn't exist (caller should catch and re-raise appropriately).
+            TypeError: If value doesn't match property type.
+        """
+        if self._frozen:
+            raise AttributeError("Cannot modify frozen TyConf")
+        
+        if name not in self._properties:
+            # Caller will convert this to appropriate error type
+            # (AttributeError for __setattr__, KeyError for __setitem__)
+            raise KeyError(name)
+        
+        prop = self._properties[name]
+        
+        if prop.readonly:
+            raise AttributeError(f"Property '{name}' is read-only")
+        
+        # Validate and set
+        self._validate_type(name, value, prop.prop_type)
+        self._values[name] = value
+
     def _validate_type(self, name: str, value: Any, expected_type: type):
         """
         Validate that a value matches the expected type.
@@ -508,22 +541,12 @@ class TyConf:
             # Allow setting internal attributes during initialization
             object.__setattr__(self, name, value)
             return
-
-        if self._frozen:
-            raise AttributeError("Cannot modify frozen TyConf")
-
-        if name not in self._properties:
+        
+        try:
+            self._set_property(name, value)
+        except KeyError:
+            # Convert KeyError to AttributeError for attribute access
             raise AttributeError(f"TyConf has no property '{name}'")
-
-        prop = self._properties[name]
-
-        if prop.readonly:
-            raise AttributeError(f"Property '{name}' is read-only")
-
-        # Validate type
-        self._validate_type(name, value, prop.prop_type)
-
-        self._values[name] = value
 
     def __len__(self) -> int:
         """Return number of properties."""
@@ -541,21 +564,8 @@ class TyConf:
 
     def __setitem__(self, name: str, value: Any):
         """Set property value via dict-style access."""
-        if self._frozen:
-            raise AttributeError("Cannot modify frozen TyConf")
-
-        if name not in self._properties:
-            raise KeyError(name)
-
-        prop = self._properties[name]
-
-        if prop.readonly:
-            raise AttributeError(f"Property '{name}' is read-only")
-
-        # Validate type
-        self._validate_type(name, value, prop.prop_type)
-
-        self._values[name] = value
+        # KeyError propagates naturally from _set_property
+        self._set_property(name, value)
 
     def __delitem__(self, name: str):
         """Delete property via dict-style access."""
