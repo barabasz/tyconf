@@ -192,14 +192,15 @@ def test_unhashable():
     with pytest.raises(TypeError, match="unhashable"):
         hash(cfg)
 
+
 def test_validate_generic_list():
     """Test validation of generic list types."""
     cfg = TyConf(tags=(list[str], []))
-    
+
     # Should accept lists
     cfg.tags = ["a", "b", "c"]
     assert cfg.tags == ["a", "b", "c"]
-    
+
     # Should reject non-lists
     with pytest.raises(TypeError):
         cfg.tags = "not a list"
@@ -208,11 +209,11 @@ def test_validate_generic_list():
 def test_validate_generic_dict():
     """Test validation of generic dict types."""
     cfg = TyConf(mapping=(dict[str, int], {}))
-    
+
     # Should accept dicts
     cfg.mapping = {"x": 1, "y": 2}
     assert cfg.mapping == {"x": 1, "y": 2}
-    
+
     # Should reject non-dicts
     with pytest.raises(TypeError):
         cfg.mapping = "not a dict"
@@ -220,18 +221,16 @@ def test_validate_generic_dict():
 
 def test_union_with_generics():
     """Test Union containing generic types."""
-    cfg = TyConf(
-        data=(Union[list[int], str], [])
-    )
-    
+    cfg = TyConf(data=(Union[list[int], str], []))
+
     # List should work
     cfg.data = [1, 2, 3]
     assert cfg.data == [1, 2, 3]
-    
+
     # String should work
     cfg.data = "text"
     assert cfg.data == "text"
-    
+
     # Other types should fail
     with pytest.raises(TypeError):
         cfg.data = 123
@@ -239,22 +238,19 @@ def test_union_with_generics():
 
 def test_copy_preserves_original_defaults():
     """Test that copy() preserves original default values."""
-    cfg = TyConf(
-        port=(int, 8080),
-        debug=(bool, False)
-    )
-    
+    cfg = TyConf(port=(int, 8080), debug=(bool, False))
+
     # Modify values
     cfg.port = 3000
     cfg.debug = True
-    
+
     # Create copy
     copy = cfg.copy()
-    
+
     # Copy has current values
     assert copy.port == 3000
     assert copy.debug is True
-    
+
     # Reset should restore ORIGINAL defaults, not copied values
     copy.reset()
     assert copy.port == 8080  # Back to original default
@@ -265,71 +261,69 @@ def test_copy_independence():
     """Test that copy is independent from original."""
     original = TyConf(value=(int, 100))
     copy = original.copy()
-    
+
     # Modify copy
     copy.value = 200
-    
+
     # Original unchanged
     assert original.value == 100
-    
+
     # Modify original
     original.value = 300
-    
+
     # Copy unchanged
     assert copy.value == 200
 
 
 def test_copy_readonly_properties():
     """Test that readonly properties are copied correctly."""
-    cfg = TyConf(
-        VERSION=(str, "1.0.0", True),
-        debug=(bool, False)
-    )
-    
+    cfg = TyConf(VERSION=(str, "1.0.0", True), debug=(bool, False))
+
     copy = cfg.copy()
-    
+
     # Readonly flag preserved
-    assert copy.get_property_info('VERSION').readonly is True
-    
+    assert copy.get_property_info("VERSION").readonly is True
+
     # Value preserved
     assert copy.VERSION == "1.0.0"
-    
+
     # Still readonly
     with pytest.raises(AttributeError, match="read-only"):
         copy.VERSION = "2.0.0"
 
+
 def test_property_definition_validation():
     """Test validation of property definitions in constructor."""
-    
+
     # Should raise TypeError for non-tuple values
     with pytest.raises(TypeError, match="expected tuple"):
         TyConf(debug=True)
-    
+
     with pytest.raises(TypeError, match="expected tuple"):
         TyConf(host="localhost")
-    
+
     with pytest.raises(TypeError, match="expected tuple"):
         TyConf(port=8080)
-    
+
     # Should raise ValueError for wrong tuple length
     with pytest.raises(ValueError, match="expected tuple of 2 or 3 elements"):
         TyConf(port=(int,))
-    
+
     with pytest.raises(ValueError, match="expected tuple of 2 or 3 elements"):
         TyConf(debug=(bool, True, False, "extra"))
 
 
 def test_property_definition_error_messages():
     """Test that error messages are helpful."""
-    
+
     # Check error message includes property name
     with pytest.raises(TypeError, match="Property 'debug'"):
         TyConf(debug=True)
-    
+
     # Check error message includes type
     with pytest.raises(TypeError, match="got bool"):
         TyConf(debug=True)
-    
+
     # Check error message includes example
     with pytest.raises(TypeError, match="Example:"):
         TyConf(host="localhost")

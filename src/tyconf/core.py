@@ -89,7 +89,7 @@ class TyConf:
                     f"(type, value, readonly), got {type(prop_def).__name__}. "
                     f"Example: {name}=({type(prop_def).__name__}, {prop_def!r})"
                 )
-            
+
             if len(prop_def) == 2:
                 prop_type, default_value = prop_def
                 readonly = False
@@ -190,12 +190,12 @@ class TyConf:
     def copy(self) -> "TyConf":
         """
         Create an unfrozen copy of the TyConf.
-        
+
         The copy preserves:
         - Original default values (so reset() works correctly)
         - Current property values
         - Property types and readonly flags
-        
+
         The copy is always unfrozen, even if the original is frozen.
 
         Returns:
@@ -226,7 +226,7 @@ class TyConf:
                 default_value=prop.default_value,  # Original default, NOT current value
                 readonly=prop.readonly,
             )
-            
+
             # Step 2: Set CURRENT value from source
             # Direct access to _values is intentional here to:
             # - Avoid triggering validation again (already validated)
@@ -393,14 +393,14 @@ class TyConf:
     def _set_property(self, name: str, value: Any) -> None:
         """
         Internal helper to set property value with validation.
-        
+
         This method contains the shared logic for __setattr__ and __setitem__,
         following the DRY (Don't Repeat Yourself) principle.
-        
+
         Args:
             name: Property name.
             value: Value to set.
-            
+
         Raises:
             AttributeError: If TyConf is frozen or property is read-only.
             KeyError: If property doesn't exist (caller should catch and re-raise appropriately).
@@ -408,17 +408,17 @@ class TyConf:
         """
         if self._frozen:
             raise AttributeError("Cannot modify frozen TyConf")
-        
+
         if name not in self._properties:
             # Caller will convert this to appropriate error type
             # (AttributeError for __setattr__, KeyError for __setitem__)
             raise KeyError(name)
-        
+
         prop = self._properties[name]
-        
+
         if prop.readonly:
             raise AttributeError(f"Property '{name}' is read-only")
-        
+
         # Validate and set
         self._validate_type(name, value, prop.prop_type)
         self._values[name] = value
@@ -427,12 +427,12 @@ class TyConf:
         """
         Validate that a value matches the expected type.
         Supports Optional, Union and Generics (e.g. list[str], dict[str, int]).
-        
+
         Args:
             name: Property name (for error messages).
             value: Value to validate.
             expected_type: Expected type.
-            
+
         Raises:
             TypeError: If value doesn't match expected_type.
         """
@@ -441,7 +441,7 @@ class TyConf:
         if origin is Union:
             # Handle Optional[T] (Union[T, None]) and Union types
             args = get_args(expected_type)
-            
+
             # Check if value matches any of the union types
             if value is None and type(None) in args:
                 return
@@ -449,11 +449,11 @@ class TyConf:
             for arg in args:
                 if arg is type(None):
                     continue
-                
+
                 # Extract base type for generics inside Union
                 # e.g. Union[list[int], str] -> check against list, not list[int]
                 check_type = get_origin(arg) or arg
-                
+
                 try:
                     if isinstance(value, check_type):
                         return
@@ -463,9 +463,7 @@ class TyConf:
 
             # If we get here, value doesn't match any union type
             type_names = ", ".join(
-                getattr(arg, "__name__", str(arg))
-                for arg in args
-                if arg is not type(None)
+                getattr(arg, "__name__", str(arg)) for arg in args if arg is not type(None)
             )
             raise TypeError(
                 f"Property '{name}': expected one of ({type_names}), got {type(value).__name__}"
@@ -473,13 +471,12 @@ class TyConf:
 
         # Handle regular types and generics (e.g. list[str] -> list)
         check_type = origin or expected_type
-        
+
         if not isinstance(value, check_type):
             # Format type name safely
             expected_name = getattr(expected_type, "__name__", str(expected_type))
             raise TypeError(
-                f"Property '{name}': expected {expected_name}, "
-                f"got {type(value).__name__}"
+                f"Property '{name}': expected {expected_name}, " f"got {type(value).__name__}"
             )
 
     def _format_value_for_display(self, value: Any) -> str:
@@ -564,7 +561,7 @@ class TyConf:
             # Allow setting internal attributes during initialization
             object.__setattr__(self, name, value)
             return
-        
+
         try:
             self._set_property(name, value)
         except KeyError:
