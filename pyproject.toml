@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tyconf"
-version = "1.0.2"
-description = "TyConf - Type-safe Configuration Management for Python"
+version = "1.1.0"
+description = "TyConf - Type-safe Configuration Management for Python with Value Validation"
 readme = "README.md"
 authors = [
     { name = "barabasz", email = "tyconf@anba.ovh" }
@@ -26,7 +26,7 @@ classifiers = [
     "Topic :: Utilities",
     "Typing :: Typed",
 ]
-keywords = ["configuration", "config", "settings", "typed", "validation", "type-safe"]
+keywords = ["configuration", "config", "settings", "typed", "validation", "type-safe", "validators"]
 
 [project.urls]
 Homepage = "https://github.com/barabasz/tyconf"

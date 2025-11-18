@@ -5,6 +5,27 @@ All notable changes to [TyConf](https://github.com/barabasz/tyconf) will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-11-18
+
+### Added
+- **Value Validation** - Support for validators to check property values beyond type checking
+- Auto-detection of third parameter: `bool` for readonly, `callable` for validator
+- Validation on initialization, assignment, and update operations
+- New tests for validator functionality (test_validators.py)
+
+### Changed
+- Property definition now supports: `(type, value)`, `(type, value, readonly)`, or `(type, value, validator)`
+- Third parameter auto-detects type: if `bool` → readonly flag, if `callable` → validator
+- Updated `PropertyDescriptor` to include optional `validator` field
+- Enhanced `__init__()` to handle validator parameter
+- Enhanced `add()` method with validator support
+- Updated `_set_property()` to call validators on value changes
+- Improved error messages for validation failures
+
+### Fixed
+- Validators and readonly are now mutually exclusive (as designed)
+- Clear error message when third parameter is neither bool nor callable
+
 ## [1.0.2] - 2025-11-18
 
 ### Added
@@ -128,6 +149,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **1.1.0** (2025-11-18) - Added value validation with validators module
+- **1.0.2** (2025-11-18) - Code refactoring and improvements
+- **1.0.1** (2025-11-18) - Better error messages
 - **1.0.0** (2025-11-18) - Initial stable release with full feature set
 - **0.9.5** (2025-11-17) - Renamed from PyConf to TyConf
 - **0.9.4** (2025-11-16) - Added Optional/Union support
