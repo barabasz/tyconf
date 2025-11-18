@@ -40,21 +40,21 @@ pip install tyconf
 
 ## Documentation
 
-- **[User Guide](docs/user_guide.md)** - Comprehensive guide with all features
-- **[API Reference](docs/api_reference.md)** - Complete API documentation
-- **[Best Practices](docs/best_practices.md)** - Tips for effective usage
+- **[User Guide](https://github.com/barabasz/tyconf/blob/main/docs/user_guide.md)** - Comprehensive guide with all features
+- **[API Reference](https://github.com/barabasz/tyconf/blob/main/docs/api_reference.md)** - Complete API documentation
+- **[Best Practices](https://github.com/barabasz/tyconf/blob/main/docs/best_practices.md)** - Tips for effective usage
 
 ## Examples
 
-See the [examples/](examples/) directory for complete examples:
+See the [examples/](https://github.com/barabasz/tyconf/tree/main/examples) directory for complete examples:
 
-- **[basic_usage.py](examples/basic_usage.py)** - Getting started
-- **[advanced_usage.py](examples/advanced_usage.py)** - Advanced features
-- **[real_world_app.py](examples/real_world_app.py)** - Real-world application configuration
+- **[basic_usage.py](https://github.com/barabasz/tyconf/blob/main/examples/basic_usage.py)** - Getting started
+- **[advanced_usage.py](https://github.com/barabasz/tyconf/blob/main/examples/advanced_usage.py)** - Advanced features
+- **[real_world_app.py](https://github.com/barabasz/tyconf/blob/main/examples/real_world_app.py)** - Real-world application configuration
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](https://github.com/barabasz/tyconf/blob/main/LICENSE) for details.
 
 ## Contributing
 
