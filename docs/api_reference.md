@@ -19,12 +19,19 @@ TyConf(**properties)
   - `(type, default_value)` - Regular property
   - `(type, default_value, readonly)` - Read-only property when `readonly=True`
 
+**Raises:**
+- `TypeError`: If a property definition is not a tuple or list.
+- `ValueError`: If a property definition tuple has the wrong number of elements, or if a property name starts with an underscore (`_`).
+
 **Example:**
 ```python
 config = TyConf(
     VERSION=(str, "1.0.0", True),  # Read-only
     debug=(bool, False)             # Mutable
 )
+
+# This will raise ValueError because the name starts with an underscore
+# config = TyConf(_internal=(int, 123))
 ```
 
 #### Methods
@@ -45,6 +52,7 @@ Add a new property to the configuration.
 
 **Raises:**
 - `AttributeError`: If TyConf is frozen or property already exists
+- `ValueError`: If the property name is reserved (starts with an underscore `_`)
 - `TypeError`: If default_value doesn't match prop_type
 
 **Example:**
@@ -53,6 +61,9 @@ config = TyConf()
 config.add('host', str, 'localhost')
 config.add('tags', list[str], [])
 config.add('VERSION', str, '1.0.0', readonly=True)
+
+# This will raise ValueError
+# config.add('_secret', str, 'value')
 ```
 
 ##### remove()
@@ -523,7 +534,7 @@ Raised when a value doesn't match the expected type:
 
 ```python
 config = TyConf(port=(int, 8080))
-config.port = "invalid"  # TypeError: Property 'port': expected int, got str
+# config.port = "invalid"  # TypeError: Property 'port': expected int, got str
 ```
 
 ### AttributeError
@@ -538,15 +549,26 @@ Raised when:
 ```python
 # Read-only property
 config = TyConf(VERSION=(str, "1.0.0", True))
-config.VERSION = "2.0"  # AttributeError: Property 'VERSION' is read-only
+# config.VERSION = "2.0"  # AttributeError: Property 'VERSION' is read-only
 
 # Frozen configuration
 config = TyConf(debug=(bool, True))
 config.freeze()
-config.debug = False  # AttributeError: Cannot modify frozen TyConf
+# config.debug = False  # AttributeError: Cannot modify frozen TyConf
 
 # Non-existent property
-config.missing  # AttributeError: TyConf has no property 'missing'
+# config.missing  # AttributeError: TyConf has no property 'missing'
+```
+
+### ValueError
+
+Raised when:
+- A property definition tuple has the wrong number of elements.
+- A property name starts with an underscore (`_`), as this is reserved.
+
+```python
+# Invalid name
+# config = TyConf(_secret=(str, "value"))  # ValueError: Property name '_secret' is reserved.
 ```
 
 ### KeyError
@@ -554,7 +576,7 @@ config.missing  # AttributeError: TyConf has no property 'missing'
 Raised when using dict-style access on non-existent properties:
 
 ```python
-value = config['missing']  # KeyError: 'missing'
+# value = config['missing']  # KeyError: 'missing'
 ```
 
 ---
@@ -566,7 +588,7 @@ Access version information from the package:
 ```python
 import tyconf
 
-print(tyconf.__version__)    # '1.0.0'
+print(tyconf.__version__)    # '1.0.1'
 print(tyconf.__author__)     # 'barabasz'
 print(tyconf.__license__)    # 'MIT'
 print(tyconf.__url__)        # 'https://github.com/barabasz/tyconf'

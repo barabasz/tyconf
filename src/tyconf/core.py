@@ -127,6 +127,10 @@ class TyConf:
         if self._frozen:
             raise AttributeError("Cannot add properties to frozen TyConf")
 
+        # Validate property name not empty
+        if not name or not name.strip():
+            raise ValueError("Property name cannot be empty")
+
         # Validate property name starting with underscore
         if name.startswith("_"):
             raise ValueError(

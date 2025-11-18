@@ -282,7 +282,7 @@ config.remove('temp')
 print('temp' in config)  # False
 
 # Cannot remove read-only properties
-config.remove('VERSION')  # AttributeError
+# config.remove('VERSION')  # Raises AttributeError
 ```
 
 ### Updating Multiple Properties
@@ -355,11 +355,11 @@ print(config.VERSION)   # '1.0' (unchanged - read-only)
 
 ### Reserved Names
 
-Property names starting with underscore (`_`) are reserved for internal use and cannot be used:
+Property names starting with an underscore (`_`) are reserved for internal use and cannot be used. Attempting to define a property like `_private` will raise a `ValueError`.
 
 ```python
 # ❌ Wrong - underscore prefix is reserved
-config = TyConf(_private=(str, "value"))  # Will not work as expected
+# config = TyConf(_private=(str, "value"))  # Raises ValueError
 
 # ✅ Correct - use regular names
 config = TyConf(private=(str, "value"))
@@ -453,7 +453,7 @@ for name, value in config.items():
 
 ```python
 properties = config.list_properties()
-print(properties)  # ['debug', 'host', 'port']
+print(properties)  # ['host', 'port', 'debug']
 ```
 
 ---
@@ -515,7 +515,7 @@ print(repr(config))  # <TyConf with 2 properties>
 
 **❌ Wrong:**
 ```python
-config = TyConf(debug=True)
+# config = TyConf(debug=True)
 # TypeError: Property 'debug': expected tuple (type, value) or (type, value, readonly), 
 # got bool. Example: debug=(bool, True)
 ```
@@ -529,7 +529,7 @@ config = TyConf(debug=(bool, True))
 
 **❌ Wrong:**
 ```python
-config = TyConf(port=(int,))
+# config = TyConf(port=(int,))
 # ValueError: Property 'port': expected tuple of 2 or 3 elements, got 1.
 # Valid formats: (port=(type, value)) or (port=(type, value, readonly))
 ```
@@ -545,7 +545,7 @@ config = TyConf(port=(int, 8080, False))
 
 **❌ Wrong:**
 ```python
-config = TyConf(debug=(bool, True, False, "extra"))
+# config = TyConf(debug=(bool, True, False, "extra"))
 # ValueError: Property 'debug': expected tuple of 2 or 3 elements, got 4.
 ```
 
@@ -560,7 +560,7 @@ config = TyConf(debug=(bool, True, False))
 
 **❌ Wrong:**
 ```python
-config = TyConf(host="localhost")
+# config = TyConf(host="localhost")
 # TypeError: Property 'host': expected tuple (type, value) or (type, value, readonly),
 # got str. Example: host=(str, 'localhost')
 ```
@@ -592,7 +592,7 @@ config.data = ["x", "y", "z"]  # Validated as list
 ```python
 config = TyConf(port=(int, 8080))
 config.freeze()
-config.port = 3000
+# config.port = 3000
 # AttributeError: Cannot modify frozen TyConf
 ```
 
@@ -609,7 +609,7 @@ config.port = 3000  # Now OK
 **❌ Wrong:**
 ```python
 config = TyConf(VERSION=(str, "1.0.0", True))
-config.VERSION = "2.0.0"
+# config.VERSION = "2.0.0"
 # AttributeError: Property 'VERSION' is read-only
 ```
 
