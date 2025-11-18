@@ -386,9 +386,7 @@ class TyConf:
     def _set_property(self, name: str, value: Any) -> None:
         """
         Internal helper to set property value with validation.
-
         This method contains the shared logic for __setattr__ and __setitem__,
-        following the DRY (Don't Repeat Yourself) principle.
 
         Args:
             name: Property name.
@@ -419,9 +417,7 @@ class TyConf:
     def _del_property(self, name: str) -> None:
         """
         Internal helper to delete property safely.
-
-        This method contains the shared logic for remove() and __delitem__,
-        following the DRY (Don't Repeat Yourself) principle.
+        This method contains the shared logic for remove() and __delitem__.
 
         Args:
             name: Property name to delete.
