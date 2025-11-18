@@ -26,13 +26,13 @@ config.port = 3000      # Type-checked and range-validated automatically
 
 ## Key Features
 
-✅ **Type Safety** - Runtime type validation with support for `Optional` and `Union` types
-✅ **Value Validation** - Built-in validators (range, length, regex, etc.) and custom validation functions
-✅ **Read-Only Properties** - Protect critical configuration from accidental changes
-✅ **Freeze/Unfreeze** - Lock entire configuration to prevent modifications
-✅ **Intuitive API** - Both attribute (`config.host`) and dict-style (`config['host']`) access
-✅ **Copy & Reset** - Easily duplicate or restore default configurations
-✅ **Zero Dependencies** - Pure Python with no external requirements
+✅ **Type Safety** - Runtime type validation with support for `Optional` and `Union` types  
+✅ **Value Validation** - Built-in validators (range, length, regex, etc.) and custom validation functions  
+✅ **Read-Only Properties** - Protect critical configuration from accidental changes  
+✅ **Freeze/Unfreeze** - Lock entire configuration to prevent modifications  
+✅ **Intuitive API** - Both attribute (`config.host`) and dict-style (`config['host']`) access  
+✅ **Copy & Reset** - Easily duplicate or restore default configurations  
+✅ **Zero Dependencies** - Pure Python with no external requirements  
 
 ## Installation
 
