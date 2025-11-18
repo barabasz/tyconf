@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `_set_property()` to call validators on value changes
 - Improved error messages for validation failures
 
+### Removed
+- Support for Python 3.9
+
 ### Fixed
 - Validators and readonly are now mutually exclusive (as designed)
 - Clear error message when third parameter is neither bool nor callable
