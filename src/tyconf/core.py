@@ -2,10 +2,10 @@
 TyConf - Core implementation for type-safe configuration management.
 
 This module provides the core TyConf class and PropertyDescriptor for managing
-configuration with runtime type validation.
+configuration with runtime type validation and value validators.
 """
 
-from typing import Any, Union, get_args, get_origin
+from typing import Any, Union, Optional, Callable, get_args, get_origin
 from dataclasses import dataclass
 
 
@@ -17,6 +17,7 @@ class PropertyDescriptor:
     prop_type: type
     default_value: Any
     readonly: bool = False
+    validator: Optional[Callable[[Any], Any]] = None
 
 
 class TyConf:
@@ -24,7 +25,8 @@ class TyConf:
     Type-safe configuration manager with runtime validation.
 
     TyConf (Typed Config) provides a robust way to manage application configuration
-    with automatic type validation, read-only properties, and freeze/unfreeze capabilities.
+    with automatic type validation, value validation, read-only properties, and
+    freeze/unfreeze capabilities.
 
     Attributes:
         _properties: Dictionary mapping property names to their descriptors.
@@ -34,7 +36,7 @@ class TyConf:
     Examples:
         >>> config = TyConf(
         ...     host=(str, "localhost"),
-        ...     port=(int, 8080),
+        ...     port=(int, 8080, lambda x: 1024 <= x <= 65535),
         ...     debug=(bool, True)
         ... )
         >>> config.host
@@ -62,17 +64,21 @@ class TyConf:
         Initialize TyConf with properties.
 
         Args:
-            **properties: Keyword arguments where each value is a tuple of
-                         (type, default_value) or (type, default_value, readonly).
+            **properties: Keyword arguments where each value is a tuple of:
+                         - (type, default_value) - Regular property
+                         - (type, default_value, readonly) - Read-only property when readonly=True
+                         - (type, default_value, validator) - Property with validator (callable)
 
         Raises:
-            TypeError: If property definition is not a tuple/list.
+            TypeError: If property definition is not a tuple/list or third parameter
+                      is neither bool nor callable.
             ValueError: If tuple has wrong number of elements.
 
         Examples:
             >>> config = TyConf(
-            ...     VERSION=(str, "1.0.0", True),
-            ...     debug=(bool, False)
+            ...     VERSION=(str, "1.0.0", True),  # Read-only
+            ...     port=(int, 8080, lambda x: 1024 <= x <= 65535),  # With validator
+            ...     debug=(bool, False)  # Regular
             ... )
         """
         # Internal storage
@@ -86,24 +92,47 @@ class TyConf:
             if not isinstance(prop_def, (tuple, list)):
                 raise TypeError(
                     f"Property '{name}': expected tuple (type, value) or "
-                    f"(type, value, readonly), got {type(prop_def).__name__}. "
+                    f"(type, value, readonly) or (type, value, validator), "
+                    f"got {type(prop_def).__name__}. "
                     f"Example: {name}=({type(prop_def).__name__}, {prop_def!r})"
                 )
 
             if len(prop_def) == 2:
                 prop_type, default_value = prop_def
                 readonly = False
+                validator = None
             elif len(prop_def) == 3:
-                prop_type, default_value, readonly = prop_def
+                prop_type, default_value, third_param = prop_def
+
+                # AUTO-DETECT: bool = readonly, callable = validator
+                if isinstance(third_param, bool):
+                    readonly = third_param
+                    validator = None
+                elif callable(third_param):
+                    readonly = False
+                    validator = third_param
+                else:
+                    raise TypeError(
+                        f"Property '{name}': third parameter must be bool (readonly) "
+                        f"or callable (validator), got {type(third_param).__name__}"
+                    )
             else:
                 raise ValueError(
                     f"Property '{name}': expected tuple of 2 or 3 elements, got {len(prop_def)}. "
-                    f"Valid formats: ({name}=(type, value)) or ({name}=(type, value, readonly))"
+                    f"Valid formats: ({name}=(type, value)), ({name}=(type, value, readonly)), "
+                    f"or ({name}=(type, value, validator))"
                 )
 
-            self.add(name, prop_type, default_value, readonly)
+            self.add(name, prop_type, default_value, readonly, validator)
 
-    def add(self, name: str, prop_type: type, default_value: Any, readonly: bool = False):
+    def add(
+        self,
+        name: str,
+        prop_type: type,
+        default_value: Any,
+        readonly: bool = False,
+        validator: Optional[Callable] = None,
+    ):
         """
         Add a new property to the TyConf.
 
@@ -112,15 +141,17 @@ class TyConf:
             prop_type: Expected type for the property.
             default_value: Default value for the property.
             readonly: If True, property cannot be modified after creation.
+            validator: Optional callable to validate property values.
 
         Raises:
             AttributeError: If TyConf is frozen or property already exists.
-            ValueError: If property name is reserved (starts with '_').
+            ValueError: If property name is reserved (starts with '_') or validator fails.
             TypeError: If default_value doesn't match prop_type.
 
         Examples:
             >>> config = TyConf()
             >>> config.add('host', str, 'localhost')
+            >>> config.add('port', int, 8080, validator=lambda x: 1024 <= x <= 65535)
             >>> config.host
             'localhost'
         """
@@ -145,9 +176,17 @@ class TyConf:
         # Validate default value type
         self._validate_type(name, default_value, prop_type)
 
+        # Validate default value with validator
+        if validator is not None:
+            self._validate_value(name, default_value, validator)
+
         # Store property descriptor and value
         self._properties[name] = PropertyDescriptor(
-            name=name, prop_type=prop_type, default_value=default_value, readonly=readonly
+            name=name,
+            prop_type=prop_type,
+            default_value=default_value,
+            readonly=readonly,
+            validator=validator,
         )
         self._values[name] = default_value
 
@@ -183,6 +222,7 @@ class TyConf:
         Raises:
             AttributeError: If any property is read-only or doesn't exist.
             TypeError: If any value doesn't match its property type.
+            ValueError: If any value fails validator.
 
         Examples:
             >>> config = TyConf(host=(str, "localhost"), port=(int, 8080))
@@ -200,7 +240,7 @@ class TyConf:
         The copy preserves:
         - Original default values (so reset() works correctly)
         - Current property values
-        - Property types and readonly flags
+        - Property types, readonly flags, and validators
 
         The copy is always unfrozen, even if the original is frozen.
 
@@ -231,6 +271,7 @@ class TyConf:
                 prop_type=prop.prop_type,
                 default_value=prop.default_value,  # Original default, NOT current value
                 readonly=prop.readonly,
+                validator=prop.validator,
             )
 
             # Step 2: Set CURRENT value from source
@@ -399,7 +440,7 @@ class TyConf:
     def _set_property(self, name: str, value: Any) -> None:
         """
         Internal helper to set property value with validation.
-        This method contains the shared logic for __setattr__ and __setitem__,
+        This method contains the shared logic for __setattr__ and __setitem__.
 
         Args:
             name: Property name.
@@ -409,6 +450,7 @@ class TyConf:
             AttributeError: If TyConf is frozen or property is read-only.
             KeyError: If property doesn't exist (caller should catch and re-raise appropriately).
             TypeError: If value doesn't match property type.
+            ValueError: If value fails validator.
         """
         if self._frozen:
             raise AttributeError("Cannot modify frozen TyConf")
@@ -423,8 +465,13 @@ class TyConf:
         if prop.readonly:
             raise AttributeError(f"Property '{name}' is read-only")
 
-        # Validate and set
+        # Validate type
         self._validate_type(name, value, prop.prop_type)
+
+        # Validate with validator (if exists)
+        if prop.validator is not None:
+            self._validate_value(name, value, prop.validator)
+
         self._values[name] = value
 
     def _del_property(self, name: str) -> None:
@@ -509,6 +556,37 @@ class TyConf:
             raise TypeError(
                 f"Property '{name}': expected {expected_name}, " f"got {type(value).__name__}"
             )
+
+    def _validate_value(self, name: str, value: Any, validator: Callable):
+        """
+        Validate value using validator function.
+
+        Validator can:
+        1. Return True/False
+        2. Raise exception with custom message
+        3. Return None (treated as success)
+
+        Args:
+            name: Property name (for error messages).
+            value: Value to validate.
+            validator: Validator callable.
+
+        Raises:
+            ValueError: If validation fails.
+        """
+        try:
+            result = validator(value)
+
+            # If validator returns bool, check it
+            if isinstance(result, bool) and result is False:
+                raise ValueError(f"Property '{name}': validation failed for value {value!r}")
+            # If returns None or True, it's OK
+
+        except Exception as e:
+            # Re-raise with property context if not already a ValueError
+            if not isinstance(e, ValueError):
+                raise ValueError(f"Property '{name}': validation error: {str(e)}") from e
+            raise
 
     def _format_value_for_display(self, value: Any) -> str:
         """

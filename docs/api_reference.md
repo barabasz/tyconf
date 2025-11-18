@@ -22,8 +22,8 @@ TyConf(**properties)
     - If `third_param` is `callable`: Sets validator function
 
 **Raises:**
-- `TypeError`: If a property definition is not a tuple or list.
-- `ValueError`: If a property definition tuple has the wrong number of elements, or if a property name starts with an underscore (`_`).
+- `TypeError`: If a property definition is not a tuple or list, or if third parameter is neither bool nor callable.
+- `ValueError`: If a property definition tuple has the wrong number of elements, if a property name starts with an underscore (`_`), or if validator fails.
 
 **Example:**
 ```python
@@ -116,6 +116,7 @@ Update multiple property values at once.
 **Raises:**
 - `AttributeError`: If any property is read-only or doesn't exist
 - `TypeError`: If any value doesn't match its property type
+- `ValueError`: If any value fails validator
 
 **Example:**
 ```python
@@ -133,7 +134,7 @@ Create an unfrozen copy of the configuration.
 The copy preserves:
 - **Original default values** (so `reset()` restores to original defaults, not copied values)
 - **Current property values**
-- **Property types and readonly flags**
+- **Property types, readonly flags, and validators**
 
 The copy is always unfrozen, even if the original is frozen.
 
@@ -142,18 +143,24 @@ The copy is always unfrozen, even if the original is frozen.
 
 **Example:**
 ```python
-config = TyConf(debug=(bool, True), port=(int, 8080))
+config = TyConf(
+    debug=(bool, True), 
+    port=(int, 8080, range(1024, 65535))
+)
 
 # Modify values
 config.debug = False
 config.port = 3000
 config.freeze()
 
-# Create copy - preserves current values
+# Create copy - preserves current values and validators
 backup = config.copy()
 backup.frozen        # False (copy is unfrozen)
 backup.debug         # False (current value)
 backup.port          # 3000 (current value)
+
+# Validator is preserved
+backup.port = 80     # ValueError: must be >= 1024
 
 # Reset restores ORIGINAL defaults, not copied values
 backup.reset()
@@ -161,7 +168,7 @@ backup.debug         # True (original default)
 backup.port          # 8080 (original default)
 ```
 
-**Important:** The copy preserves original default values, ensuring that `reset()` works correctly even on modified configurations.
+**Important:** The copy preserves original default values and validators, ensuring that `reset()` and validation work correctly even on modified configurations.
 
 ##### reset()
 
@@ -254,6 +261,7 @@ print(info.name)           # 'VERSION'
 print(info.prop_type)      # <class 'str'>
 print(info.default_value)  # '1.0.0'
 print(info.readonly)       # True
+print(info.validator)      # None or callable
 ```
 
 ##### list_properties()
@@ -465,6 +473,46 @@ descriptor = PropertyDescriptor(
     readonly=True,
     validator=None
 )
+```
+
+#### Function Validators
+
+```python
+def validate_password(value):
+    """Validate password strength."""
+    if len(value) < 8:
+        raise ValueError("must be at least 8 characters")
+    if not any(c.isupper() for c in value):
+        raise ValueError("must contain uppercase letter")
+    if not any(c.isdigit() for c in value):
+        raise ValueError("must contain digit")
+    return True
+
+config = TyConf(
+    password=(str, "Secret123", validate_password)
+)
+```
+
+### Validator Behavior
+
+Validators can:
+
+1. **Return `True`** - Validation passes
+2. **Return `False`** - Validation fails with generic message
+3. **Return `None`** - Treated as success (implicit return)
+4. **Raise `ValueError`** - Validation fails with custom message
+
+**Example:**
+```python
+def my_validator(value):
+    if value < 0:
+        raise ValueError("must be non-negative")  # Custom message
+    return True  # Explicit success
+
+def another_validator(value):
+    if value < 0:
+        raise ValueError("must be non-negative")
+    # Implicit return None - treated as success
 ```
 
 ---
