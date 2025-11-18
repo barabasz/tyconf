@@ -349,7 +349,7 @@ class TyConf:
         """
         return list(self._properties.keys())
 
-    def get(self, name: str, default=None) -> Any:
+    def get(self, name: str, default: Any = None) -> Any:
         """
         Get a property value with optional default.
 
