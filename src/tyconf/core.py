@@ -146,8 +146,7 @@ class TyConf:
             name: Property name to remove.
 
         Raises:
-            AttributeError: If TyConf is frozen or property doesn't exist.
-            AttributeError: If property is read-only.
+            AttributeError: If TyConf is frozen, property doesn't exist, or property is read-only.
 
         Examples:
             >>> config = TyConf(debug=(bool, True))
@@ -155,17 +154,11 @@ class TyConf:
             >>> 'debug' in config
             False
         """
-        if self._frozen:
-            raise AttributeError("Cannot remove properties from frozen TyConf")
-
-        if name not in self._properties:
+        try:
+            self._del_property(name)
+        except KeyError:
+            # Convert KeyError to AttributeError for method-style access
             raise AttributeError(f"Property '{name}' does not exist")
-
-        if self._properties[name].readonly:
-            raise AttributeError(f"Cannot remove read-only property '{name}'")
-
-        del self._properties[name]
-        del self._values[name]
 
     def update(self, **kwargs):
         """
@@ -423,6 +416,35 @@ class TyConf:
         self._validate_type(name, value, prop.prop_type)
         self._values[name] = value
 
+    def _del_property(self, name: str) -> None:
+        """
+        Internal helper to delete property safely.
+
+        This method contains the shared logic for remove() and __delitem__,
+        following the DRY (Don't Repeat Yourself) principle.
+
+        Args:
+            name: Property name to delete.
+
+        Raises:
+            AttributeError: If TyConf is frozen or property is read-only.
+            KeyError: If property doesn't exist (caller should catch and re-raise appropriately).
+        """
+        if self._frozen:
+            raise AttributeError("Cannot delete properties from frozen TyConf")
+
+        if name not in self._properties:
+            # Caller will convert this to appropriate error type
+            # (AttributeError for remove(), KeyError for __delitem__)
+            raise KeyError(name)
+
+        if self._properties[name].readonly:
+            raise AttributeError(f"Cannot delete read-only property '{name}'")
+
+        # Delete from both dictionaries
+        del self._properties[name]
+        del self._values[name]
+
     def _validate_type(self, name: str, value: Any, expected_type: type):
         """
         Validate that a value matches the expected type.
@@ -589,17 +611,8 @@ class TyConf:
 
     def __delitem__(self, name: str):
         """Delete property via dict-style access."""
-        if self._frozen:
-            raise AttributeError("Cannot delete properties from frozen TyConf")
-
-        if name not in self._properties:
-            raise KeyError(name)
-
-        if self._properties[name].readonly:
-            raise AttributeError(f"Cannot delete read-only property '{name}'")
-
-        del self._properties[name]
-        del self._values[name]
+        # KeyError propagates naturally from _del_property
+        self._del_property(name)
 
     def __str__(self) -> str:
         """String representation."""
