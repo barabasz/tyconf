@@ -60,8 +60,8 @@ def regex_validator_example():
     print("=" * 60)
 
     config = TyConf(
-        email=(str, "user@example.com", regex(r'^[\w\.-]+@[\w\.-]+\.\w+$')),
-        phone=(str, "+48123456789", regex(r'^\+?[0-9]{9,15}$')),
+        email=(str, "user@example.com", regex(r"^[\w\.-]+@[\w\.-]+\.\w+$")),
+        phone=(str, "+48123456789", regex(r"^\+?[0-9]{9,15}$")),
     )
 
     print("\n1. Email Validation:")
@@ -123,7 +123,7 @@ def combined_validators_example():
         username=(
             str,
             "admin",
-            all_of(length(min_len=3, max_len=20), regex(r'^[a-zA-Z0-9_]+$')),
+            all_of(length(min_len=3, max_len=20), regex(r"^[a-zA-Z0-9_]+$")),
         ),
         port=(int, 8080, all_of(range(1024, 65535), not_in(3000, 5000, 8000))),
     )
@@ -166,8 +166,8 @@ def any_of_validator_example():
             str,
             "user@example.com",
             any_of(
-                regex(r'^[\w\.-]+@[\w\.-]+\.\w+$'),  # Email
-                regex(r'^\+?[0-9]{9,15}$'),  # Phone
+                regex(r"^[\w\.-]+@[\w\.-]+\.\w+$"),  # Email
+                regex(r"^\+?[0-9]{9,15}$"),  # Phone
             ),
         )
     )
@@ -259,7 +259,7 @@ def real_world_example():
         APP_NAME=(str, "WebAPI", True),
         VERSION=(str, "1.0.0", True),
         # Server settings with validation
-        host=(str, "localhost", regex(r'^[\w\.-]+$')),
+        host=(str, "localhost", regex(r"^[\w\.-]+$")),
         port=(int, 8080, range(1024, 65535)),
         workers=(int, 4, range(1, 16)),
         # Database with validation
@@ -272,7 +272,7 @@ def real_world_example():
         api_key=(
             str,
             "dev-key-12345",
-            all_of(length(min_len=10, max_len=100), regex(r'^[a-zA-Z0-9\-_]+$')),
+            all_of(length(min_len=10, max_len=100), regex(r"^[a-zA-Z0-9\-_]+$")),
         ),
         # Environment
         environment=(str, "dev", one_of("dev", "staging", "prod")),

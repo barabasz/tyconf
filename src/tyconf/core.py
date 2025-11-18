@@ -25,7 +25,7 @@ class TyConf:
     Type-safe configuration manager with runtime validation.
 
     TyConf (Typed Config) provides a robust way to manage application configuration
-    with automatic type validation, value validation, read-only properties, and 
+    with automatic type validation, value validation, read-only properties, and
     freeze/unfreeze capabilities.
 
     Attributes:
@@ -103,7 +103,7 @@ class TyConf:
                 validator = None
             elif len(prop_def) == 3:
                 prop_type, default_value, third_param = prop_def
-                
+
                 # AUTO-DETECT: bool = readonly, callable = validator
                 if isinstance(third_param, bool):
                     readonly = third_param
@@ -579,9 +579,7 @@ class TyConf:
 
             # If validator returns bool, check it
             if isinstance(result, bool) and result is False:
-                raise ValueError(
-                    f"Property '{name}': validation failed for value {value!r}"
-                )
+                raise ValueError(f"Property '{name}': validation failed for value {value!r}")
             # If returns None or True, it's OK
 
         except Exception as e:

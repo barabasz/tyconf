@@ -111,7 +111,7 @@ def test_length_validator_list():
 
 def test_regex_validator():
     """Test regex validator."""
-    email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    email_pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
     config = TyConf(email=(str, "user@example.com", regex(email_pattern)))
 
     # Valid emails
@@ -129,7 +129,7 @@ def test_regex_validator():
 
 def test_regex_validator_phone():
     """Test regex validator with phone numbers."""
-    phone_pattern = r'^\+?[0-9]{9,15}$'
+    phone_pattern = r"^\+?[0-9]{9,15}$"
     config = TyConf(phone=(str, "+48123456789", regex(phone_pattern)))
 
     config.phone = "123456789"
@@ -145,9 +145,7 @@ def test_regex_validator_phone():
 
 def test_one_of_validator():
     """Test one_of validator."""
-    config = TyConf(
-        log_level=(str, "INFO", one_of("DEBUG", "INFO", "WARNING", "ERROR"))
-    )
+    config = TyConf(log_level=(str, "INFO", one_of("DEBUG", "INFO", "WARNING", "ERROR")))
 
     # Valid values
     config.log_level = "DEBUG"
@@ -175,10 +173,7 @@ def test_one_of_validator_numbers():
 def test_all_of_validator():
     """Test all_of validator combining multiple validators."""
     config = TyConf(
-        username=(str, "admin", all_of(
-            length(min_len=3, max_len=20),
-            regex(r'^[a-zA-Z0-9_]+$')
-        ))
+        username=(str, "admin", all_of(length(min_len=3, max_len=20), regex(r"^[a-zA-Z0-9_]+$")))
     )
 
     # Valid usernames
@@ -198,11 +193,15 @@ def test_all_of_validator():
 def test_all_of_validator_three_validators():
     """Test all_of with three validators."""
     config = TyConf(
-        port=(int, 8080, all_of(
-            range(1024, 65535),
-            not_in(3000, 5000),
-            lambda x: x % 10 == 0 or ValueError("must be multiple of 10")
-        ))
+        port=(
+            int,
+            8080,
+            all_of(
+                range(1024, 65535),
+                not_in(3000, 5000),
+                lambda x: x % 10 == 0 or ValueError("must be multiple of 10"),
+            ),
+        )
     )
 
     config.port = 8080  # Valid
@@ -224,10 +223,13 @@ def test_all_of_validator_three_validators():
 def test_any_of_validator():
     """Test any_of validator."""
     config = TyConf(
-        contact=(str, "user@example.com", any_of(
-            regex(r'^[\w\.-]+@[\w\.-]+\.\w+$'),  # Email
-            regex(r'^\+?[0-9]{9,15}$')            # Phone
-        ))
+        contact=(
+            str,
+            "user@example.com",
+            any_of(
+                regex(r"^[\w\.-]+@[\w\.-]+\.\w+$"), regex(r"^\+?[0-9]{9,15}$")  # Email  # Phone
+            ),
+        )
     )
 
     # Valid email
@@ -244,9 +246,7 @@ def test_any_of_validator():
 
 def test_not_in_validator():
     """Test not_in validator."""
-    config = TyConf(
-        port=(int, 8080, not_in(3000, 5000, 8000))
-    )
+    config = TyConf(port=(int, 8080, not_in(3000, 5000, 8000)))
 
     # Valid ports
     config.port = 8080
@@ -263,9 +263,7 @@ def test_not_in_validator():
 
 def test_validator_with_lambda():
     """Test using lambda as validator."""
-    config = TyConf(
-        percentage=(int, 50, lambda x: 0 <= x <= 100)
-    )
+    config = TyConf(percentage=(int, 50, lambda x: 0 <= x <= 100))
 
     config.percentage = 0
     config.percentage = 50
@@ -277,6 +275,7 @@ def test_validator_with_lambda():
 
 def test_validator_with_custom_function():
     """Test using custom function as validator."""
+
     def validate_even(value):
         if value % 2 != 0:
             raise ValueError("must be even number")
@@ -304,6 +303,7 @@ def test_validator_on_initialization():
 
 def test_validator_with_none_return():
     """Test validator that returns None (treated as success)."""
+
     def validator(value):
         if value < 0:
             raise ValueError("must be non-negative")
@@ -323,21 +323,14 @@ def test_complex_validation_scenario():
     config = TyConf(
         # Simple lambda
         percentage=(int, 50, lambda x: 0 <= x <= 100),
-        
         # Built-in validator
         port=(int, 8080, range(1024, 65535)),
-        
         # Combined validators
-        username=(str, "admin", all_of(
-            length(min_len=3, max_len=20),
-            regex(r'^[a-zA-Z0-9_]+$')
-        )),
-        
+        username=(str, "admin", all_of(length(min_len=3, max_len=20), regex(r"^[a-zA-Z0-9_]+$"))),
         # Choice validator
         environment=(str, "dev", one_of("dev", "staging", "prod")),
-        
         # No validator
-        debug=(bool, True)
+        debug=(bool, True),
     )
 
     # All valid
