@@ -878,3 +878,40 @@ def test_valid_special_property_names():
     assert cfg.snake_case is True
     assert cfg.camelCase == "test"
     assert cfg.UPPER_CASE == "constant"
+
+
+def test_dict_delitem_missing():
+    """Test that deleting missing property via dict raises KeyError."""
+    cfg = TyConf()
+
+    # Should raise KeyError, NOT AttributeError
+    with pytest.raises(KeyError):
+        del cfg["missing"]
+
+
+def test_add_empty_property_name():
+    """Test validation of empty or whitespace-only property names."""
+    cfg = TyConf()
+
+    # Test empty string
+    with pytest.raises(ValueError, match="cannot be empty"):
+        cfg.add("", str, "value")
+
+    # Test whitespace
+    with pytest.raises(ValueError, match="cannot be empty"):
+        cfg.add("   ", str, "value")
+
+    # Test via constructor (using dict unpacking for invalid identifiers)
+    with pytest.raises(ValueError, match="cannot be empty"):
+        TyConf(**{"": (str, "value")})
+
+
+def test_update_empty():
+    """Test update() with no arguments does nothing."""
+    cfg = TyConf(debug=(bool, False))
+
+    # Should not raise error
+    cfg.update()
+
+    # Value should be unchanged
+    assert cfg.debug is False
