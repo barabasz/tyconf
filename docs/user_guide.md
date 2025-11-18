@@ -353,6 +353,18 @@ print(config.port)      # 8080 (reset)
 print(config.VERSION)   # '1.0' (unchanged - read-only)
 ```
 
+### Reserved Names
+
+Property names starting with underscore (`_`) are reserved for internal use and cannot be used:
+
+```python
+# ❌ Wrong - underscore prefix is reserved
+config = TyConf(_private=(str, "value"))  # Will not work as expected
+
+# ✅ Correct - use regular names
+config = TyConf(private=(str, "value"))
+```
+
 ---
 
 ## Dict-Like Interface

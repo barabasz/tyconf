@@ -115,6 +115,7 @@ class TyConf:
 
         Raises:
             AttributeError: If TyConf is frozen or property already exists.
+            ValueError: If property name is reserved (starts with '_').
             TypeError: If default_value doesn't match prop_type.
 
         Examples:
@@ -125,6 +126,14 @@ class TyConf:
         """
         if self._frozen:
             raise AttributeError("Cannot add properties to frozen TyConf")
+
+        # Validate property name starting with underscore
+        if name.startswith("_"):
+            raise ValueError(
+                f"Property name '{name}' is reserved. "
+                f"Names starting with '_' are reserved for internal use. "
+                f"Please use a name without leading underscore."
+            )
 
         if name in self._properties:
             raise AttributeError(f"Property '{name}' already exists")

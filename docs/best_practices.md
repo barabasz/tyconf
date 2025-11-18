@@ -83,6 +83,18 @@ config = TyConf(
 )
 ```
 
+### Reserved Names
+
+Property names starting with underscore (`_`) are reserved for internal use and cannot be used:
+
+```python
+# ❌ Wrong - underscore prefix is reserved
+config = TyConf(_private=(str, "value"))  # Will not work as expected
+
+# ✅ Correct - use regular names
+config = TyConf(private=(str, "value"))
+```
+
 ---
 
 ## Type Safety

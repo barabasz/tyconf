@@ -849,17 +849,32 @@ def test_case_sensitivity():
     assert cfg.host == "127.0.0.1"
 
 
-def test_special_property_names():
-    """Test properties with special but valid names."""
+def test_reserved_property_names():
+    """Test that property names starting with '_' are rejected."""
+    # Should raise ValueError for names starting with underscore
+    with pytest.raises(ValueError, match="reserved"):
+        TyConf(_private=(str, "value"))
+
+    with pytest.raises(ValueError, match="reserved"):
+        TyConf(_internal=(int, 42))
+
+    # Via add() method
+    cfg = TyConf()
+    with pytest.raises(ValueError, match="reserved"):
+        cfg.add("_new", str, "test")
+
+
+def test_valid_special_property_names():
+    """Test properties with valid special names."""
     cfg = TyConf(
-        _private=(str, "value"),
         MAX_VALUE=(int, 100),
         snake_case=(bool, True),
         camelCase=(str, "test"),
+        UPPER_CASE=(str, "constant"),
     )
 
     # All should work
-    assert cfg._private == "value"
     assert cfg.MAX_VALUE == 100
     assert cfg.snake_case is True
     assert cfg.camelCase == "test"
+    assert cfg.UPPER_CASE == "constant"
