@@ -192,6 +192,12 @@ def test_all_of_validator():
 
 def test_all_of_validator_three_validators():
     """Test all_of with three validators."""
+
+    def must_be_multiple_of_10(x):
+        if x % 10 != 0:
+            raise ValueError("must be multiple of 10")
+        return True
+
     config = TyConf(
         port=(
             int,
@@ -199,7 +205,7 @@ def test_all_of_validator_three_validators():
             all_of(
                 range(1024, 65535),
                 not_in(3000, 5000),
-                lambda x: x % 10 == 0 or ValueError("must be multiple of 10"),
+                must_be_multiple_of_10,  # Użyj funkcji zamiast lambdy
             ),
         )
     )
