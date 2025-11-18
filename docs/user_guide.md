@@ -8,13 +8,14 @@ Complete guide to using TyConf for type-safe configuration management.
 2. [Installation](#installation)
 3. [Basic Usage](#basic-usage)
 4. [Type Validation](#type-validation)
-5. [Read-Only Properties](#read-only-properties)
-6. [Freeze and Unfreeze](#freeze-and-unfreeze)
-7. [Property Management](#property-management)
-8. [Dict-Like Interface](#dict-like-interface)
-9. [Iteration](#iteration)
-10. [Advanced Features](#advanced-features)
-11. [Common Mistakes](#common-mistakes)
+5. [Value Validation](#value-validation)
+6. [Read-Only Properties](#read-only-properties)
+7. [Freeze and Unfreeze](#freeze-and-unfreeze)
+8. [Property Management](#property-management)
+9. [Dict-Like Interface](#dict-like-interface)
+10. [Iteration](#iteration)
+11. [Advanced Features](#advanced-features)
+12. [Common Mistakes](#common-mistakes)
 
 ---
 

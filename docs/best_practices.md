@@ -6,13 +6,14 @@ Guidelines for using TyConf effectively in your applications.
 
 1. [Configuration Organization](#configuration-organization)
 2. [Type Safety](#type-safety)
-3. [Read-Only Properties](#read-only-properties)
-4. [Freezing Configuration](#freezing-configuration)
-5. [Environment Variables](#environment-variables)
-6. [Testing](#testing)
-7. [Error Handling](#error-handling)
-8. [Performance](#performance)
-9. [Common Patterns](#common-patterns)
+3. [Value Validation](#value-validation)
+4. [Read-Only Properties](#read-only-properties)
+5. [Freezing Configuration](#freezing-configuration)
+6. [Environment Variables](#environment-variables)
+7. [Testing](#testing)
+8. [Error Handling](#error-handling)
+9. [Performance](#performance)
+10. [Common Patterns](#common-patterns)
 
 ---
 
