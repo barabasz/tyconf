@@ -53,7 +53,11 @@ class TyConf:
 
         Args:
             **properties: Keyword arguments where each value is a tuple of
-                         (type, default_value) or (type, default_value, readonly).
+                        (type, default_value) or (type, default_value, readonly).
+
+        Raises:
+            TypeError: If property definition is not a tuple/list.
+            ValueError: If tuple has wrong number of elements.
 
         Examples:
             >>> config = TyConf(
@@ -68,6 +72,14 @@ class TyConf:
 
         # Add properties
         for name, prop_def in properties.items():
+            # Validate property definition format
+            if not isinstance(prop_def, (tuple, list)):
+                raise TypeError(
+                    f"Property '{name}': expected tuple (type, value) or "
+                    f"(type, value, readonly), got {type(prop_def).__name__}. "
+                    f"Example: {name}=({type(prop_def).__name__}, {prop_def!r})"
+                )
+            
             if len(prop_def) == 2:
                 prop_type, default_value = prop_def
                 readonly = False
@@ -75,7 +87,8 @@ class TyConf:
                 prop_type, default_value, readonly = prop_def
             else:
                 raise ValueError(
-                    f"Property '{name}' must be (type, value) or (type, value, readonly)"
+                    f"Property '{name}': expected tuple of 2 or 3 elements, got {len(prop_def)}. "
+                    f"Valid formats: ({name}=(type, value)) or ({name}=(type, value, readonly))"
                 )
 
             self.add(name, prop_type, default_value, readonly)

@@ -297,3 +297,39 @@ def test_copy_readonly_properties():
     # Still readonly
     with pytest.raises(AttributeError, match="read-only"):
         copy.VERSION = "2.0.0"
+
+def test_property_definition_validation():
+    """Test validation of property definitions in constructor."""
+    
+    # Should raise TypeError for non-tuple values
+    with pytest.raises(TypeError, match="expected tuple"):
+        TyConf(debug=True)
+    
+    with pytest.raises(TypeError, match="expected tuple"):
+        TyConf(host="localhost")
+    
+    with pytest.raises(TypeError, match="expected tuple"):
+        TyConf(port=8080)
+    
+    # Should raise ValueError for wrong tuple length
+    with pytest.raises(ValueError, match="expected tuple of 2 or 3 elements"):
+        TyConf(port=(int,))
+    
+    with pytest.raises(ValueError, match="expected tuple of 2 or 3 elements"):
+        TyConf(debug=(bool, True, False, "extra"))
+
+
+def test_property_definition_error_messages():
+    """Test that error messages are helpful."""
+    
+    # Check error message includes property name
+    with pytest.raises(TypeError, match="Property 'debug'"):
+        TyConf(debug=True)
+    
+    # Check error message includes type
+    with pytest.raises(TypeError, match="got bool"):
+        TyConf(debug=True)
+    
+    # Check error message includes example
+    with pytest.raises(TypeError, match="Example:"):
+        TyConf(host="localhost")

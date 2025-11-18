@@ -14,6 +14,7 @@ Complete guide to using TyConf for type-safe configuration management.
 8. [Dict-Like Interface](#dict-like-interface)
 9. [Iteration](#iteration)
 10. [Advanced Features](#advanced-features)
+11. [Common Mistakes](#common-mistakes)
 
 ---
 
@@ -56,6 +57,16 @@ config = TyConf(
 ```
 
 Each property is defined as a tuple: `(type, default_value)`
+
+**Important:** Always use tuples, not single values!
+
+```python
+# ❌ Wrong - will raise TypeError
+config = TyConf(debug=True)
+
+# ✅ Correct
+config = TyConf(debug=(bool, True))
+```
 
 ### Accessing Values
 
@@ -149,6 +160,26 @@ config.workers = "max"      # str
 
 # Invalid
 config.port = 3.14          # TypeError: float not in Union[int, str]
+```
+
+### Generic Types (Python 3.9+)
+
+TyConf supports generic type annotations:
+
+```python
+config = TyConf(
+    tags=(list[str], []),
+    mapping=(dict[str, int], {}),
+    coordinates=(tuple[float, float], (0.0, 0.0))
+)
+
+# Valid assignments
+config.tags = ["python", "config", "typed"]
+config.mapping = {"count": 42, "total": 100}
+config.coordinates = (51.5074, -0.1278)
+
+# Type validation still works
+config.tags = "not a list"  # TypeError: expected list, got str
 ```
 
 ---
@@ -274,20 +305,30 @@ config.update(
 
 ### Copying Configuration
 
-Create an independent copy:
+Create an independent copy that preserves original default values:
 
 ```python
 original = TyConf(
     debug=(bool, True),
     port=(int, 8080)
 )
-original.freeze()
 
-# Create unfrozen copy
+# Modify values
+original.debug = False
+original.port = 3000
+
+# Create copy - preserves current values
 copy = original.copy()
-print(copy.frozen)      # False
-copy.debug = False      # Doesn't affect original
+print(copy.debug)      # False (current value)
+print(copy.port)       # 3000 (current value)
+
+# Reset restores ORIGINAL defaults
+copy.reset()
+print(copy.debug)      # True (original default)
+print(copy.port)       # 8080 (original default)
 ```
+
+**Important:** The copy preserves original default values, ensuring that `reset()` works correctly even on modified configurations.
 
 ### Resetting to Defaults
 
@@ -456,6 +497,130 @@ print(repr(config))  # <TyConf with 2 properties>
 
 ---
 
+## Common Mistakes
+
+### Mistake 1: Using Single Values Instead of Tuples
+
+**❌ Wrong:**
+```python
+config = TyConf(debug=True)
+# TypeError: Property 'debug': expected tuple (type, value) or (type, value, readonly), 
+# got bool. Example: debug=(bool, True)
+```
+
+**✅ Correct:**
+```python
+config = TyConf(debug=(bool, True))
+```
+
+### Mistake 2: Wrong Number of Tuple Elements
+
+**❌ Wrong:**
+```python
+config = TyConf(port=(int,))
+# ValueError: Property 'port': expected tuple of 2 or 3 elements, got 1.
+# Valid formats: (port=(type, value)) or (port=(type, value, readonly))
+```
+
+**✅ Correct:**
+```python
+config = TyConf(port=(int, 8080))
+# or
+config = TyConf(port=(int, 8080, False))
+```
+
+### Mistake 3: Too Many Tuple Elements
+
+**❌ Wrong:**
+```python
+config = TyConf(debug=(bool, True, False, "extra"))
+# ValueError: Property 'debug': expected tuple of 2 or 3 elements, got 4.
+```
+
+**✅ Correct:**
+```python
+config = TyConf(debug=(bool, True))
+# or with readonly flag
+config = TyConf(debug=(bool, True, False))
+```
+
+### Mistake 4: Providing String Instead of Tuple
+
+**❌ Wrong:**
+```python
+config = TyConf(host="localhost")
+# TypeError: Property 'host': expected tuple (type, value) or (type, value, readonly),
+# got str. Example: host=(str, 'localhost')
+```
+
+**✅ Correct:**
+```python
+config = TyConf(host=(str, "localhost"))
+```
+
+### Mistake 5: Forgetting Type Annotation
+
+**❌ Wrong (but works):**
+```python
+# This works but you lose type checking benefits
+config = TyConf(data=(list, ["a", "b"]))
+config.data = [1, 2, 3]  # No validation - allows mixed types
+```
+
+**✅ Better:**
+```python
+# Use specific type annotations
+config = TyConf(data=(list[str], ["a", "b"]))
+config.data = ["x", "y", "z"]  # Validated as list
+```
+
+### Mistake 6: Modifying Frozen Configuration
+
+**❌ Wrong:**
+```python
+config = TyConf(port=(int, 8080))
+config.freeze()
+config.port = 3000
+# AttributeError: Cannot modify frozen TyConf
+```
+
+**✅ Correct:**
+```python
+config = TyConf(port=(int, 8080))
+config.freeze()
+config.unfreeze()  # Unfreeze first
+config.port = 3000  # Now OK
+```
+
+### Mistake 7: Modifying Read-Only Properties
+
+**❌ Wrong:**
+```python
+config = TyConf(VERSION=(str, "1.0.0", True))
+config.VERSION = "2.0.0"
+# AttributeError: Property 'VERSION' is read-only
+```
+
+**✅ Correct:**
+```python
+# Read-only properties cannot be modified
+# If you need to change it, don't make it read-only
+config = TyConf(VERSION=(str, "1.0.0"))  # Not read-only
+config.VERSION = "2.0.0"  # OK
+```
+
+### Summary of Property Definition Formats
+
+| Format | Elements | Example | Use Case |
+|--------|----------|---------|----------|
+| `(type, value)` | 2 | `debug=(bool, True)` | Mutable property |
+| `(type, value, False)` | 3 | `debug=(bool, True, False)` | Explicitly mutable |
+| `(type, value, True)` | 3 | `VERSION=(str, "1.0", True)` | Read-only property |
+
+**Remember:** Always use tuples with 2 or 3 elements!
+
+---
+
 ## Real-World Example
 
 Here's a complete example for a web application:
@@ -465,7 +630,7 @@ from tyconf import TyConf
 from typing import Optional
 import os
 
-# Define configuration
+# Define configuration with proper tuple format
 app_config = TyConf(
     # Metadata (read-only)
     APP_NAME=(str, "WebAPI", True),
