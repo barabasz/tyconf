@@ -5,18 +5,20 @@ All notable changes to [TyConf](https://github.com/barabasz/tyconf) will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.1] - 2025-11-18
 
 ### Added
 - Better error messages for invalid property definitions in constructor
 - Validation that property definitions are tuples/lists (not single values)
 - Helpful examples in error messages when property definition format is incorrect
+- Type hints for class attributes (_properties, _values, _frozen) for better IDE support
 
 ### Changed
 - Refactored `__setattr__()` and `__setitem__()` to use shared `_set_property()` helper method
 - Improved code maintainability by eliminating duplication (DRY principle)
 - Internal validation logic now centralized in single location for easier maintenance
 - Enhanced `__init__()` to validate property definition format before processing
+- Added PEP 526 compliant type annotations for instance attributes
 
 ## [1.0.0] - 2025-11-18
 

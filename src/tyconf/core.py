@@ -26,6 +26,11 @@ class TyConf:
     TyConf (Typed Config) provides a robust way to manage application configuration
     with automatic type validation, read-only properties, and freeze/unfreeze capabilities.
 
+    Attributes:
+        _properties: Dictionary mapping property names to their descriptors.
+        _values: Dictionary storing current property values.
+        _frozen: Flag indicating if configuration is frozen (immutable).
+
     Examples:
         >>> config = TyConf(
         ...     host=(str, "localhost"),
@@ -39,13 +44,18 @@ class TyConf:
         3000
     """
 
+    # Class-level type hints for instance attributes
+    _properties: dict[str, PropertyDescriptor]
+    _values: dict[str, Any]
+    _frozen: bool
+
     # Constants for display formatting
-    _MAX_DISPLAY_WIDTH = 80
-    _PROPERTY_COL_WIDTH = 16
-    _VALUE_COL_WIDTH = 14
-    _TYPE_COL_WIDTH = 20
-    _MAX_COLLECTION_ITEMS = 5
-    _MAX_STRING_LENGTH = 50
+    _MAX_DISPLAY_WIDTH: int = 80
+    _PROPERTY_COL_WIDTH: int = 16
+    _VALUE_COL_WIDTH: int = 14
+    _TYPE_COL_WIDTH: int = 20
+    _MAX_COLLECTION_ITEMS: int = 5
+    _MAX_STRING_LENGTH: int = 50
 
     def __init__(self, **properties):
         """
@@ -53,7 +63,7 @@ class TyConf:
 
         Args:
             **properties: Keyword arguments where each value is a tuple of
-                        (type, default_value) or (type, default_value, readonly).
+                         (type, default_value) or (type, default_value, readonly).
 
         Raises:
             TypeError: If property definition is not a tuple/list.
