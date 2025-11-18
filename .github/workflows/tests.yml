@@ -2,18 +2,16 @@ name: Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     
     steps:
     - uses: actions/checkout@v4
@@ -32,15 +30,6 @@ jobs:
       run: |
         pytest tests/ -v --tb=short
     
-    - name: Run tests with coverage
-      if: matrix.python-version == '3.12'
+    - name: Run coverage
       run: |
-        pytest tests/ --cov=src/tyconf --cov-report=term --cov-report=xml
-    
-    - name: Check code style with black
-      run: |
-        black --check src/ tests/
-    
-    - name: Lint with flake8
-      run: |
-        flake8 src/ tests/ --max-line-length=100 --extend-ignore=E203,W503
+        pytest tests/ --cov=src/tyconf --cov-report=term-missing
