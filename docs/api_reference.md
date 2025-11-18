@@ -17,7 +17,9 @@ TyConf(**properties)
 **Parameters:**
 - `**properties`: Keyword arguments where each value is a tuple:
   - `(type, default_value)` - Regular property
-  - `(type, default_value, readonly)` - Read-only property when `readonly=True`
+  - `(type, default_value, third_param)` - Property with auto-detected third parameter:
+    - If `third_param` is `bool`: Sets readonly flag (backward compatible)
+    - If `third_param` is `callable`: Sets validator function
 
 **Raises:**
 - `TypeError`: If a property definition is not a tuple or list.
@@ -25,21 +27,27 @@ TyConf(**properties)
 
 **Example:**
 ```python
+from tyconf import TyConf
+from tyconf.validators import range
+
 config = TyConf(
-    VERSION=(str, "1.0.0", True),  # Read-only
-    debug=(bool, False)             # Mutable
+    VERSION=(str, "1.0.0", True),           # Read-only (bool = readonly)
+    port=(int, 8080, range(1024, 65535)),  # Validator (callable = validator)
+    debug=(bool, False)                     # Mutable
 )
 
 # This will raise ValueError because the name starts with an underscore
 # config = TyConf(_internal=(int, 123))
 ```
 
+**Note:** The third parameter is auto-detected: if it's a `bool`, it sets the readonly flag; if it's a `callable`, it sets a validator. Validators and readonly are mutually exclusive - you cannot have both on the same property.
+
 #### Methods
 
 ##### add()
 
 ```python
-add(name: str, prop_type: type, default_value: Any, readonly: bool = False)
+add(name: str, prop_type: type, default_value: Any, readonly: bool = False, validator: callable = None)
 ```
 
 Add a new property to the configuration.
@@ -48,22 +56,30 @@ Add a new property to the configuration.
 - `name`: Property name
 - `prop_type`: Expected type (supports `Optional`, `Union`, and generics like `list[str]`)
 - `default_value`: Default value for the property
-- `readonly`: If `True`, property cannot be modified after creation
+- `readonly`: If `True`, property cannot be modified after creation (mutually exclusive with validator)
+- `validator`: Optional callable to validate values (mutually exclusive with readonly)
 
 **Raises:**
 - `AttributeError`: If TyConf is frozen or property already exists
-- `ValueError`: If the property name is reserved (starts with an underscore `_`)
+- `ValueError`: If the property name is reserved (starts with an underscore `_`), or if both readonly and validator are specified
 - `TypeError`: If default_value doesn't match prop_type
 
 **Example:**
 ```python
+from tyconf.validators import range, regex
+
 config = TyConf()
 config.add('host', str, 'localhost')
 config.add('tags', list[str], [])
 config.add('VERSION', str, '1.0.0', readonly=True)
+config.add('port', int, 8080, validator=range(1024, 65535))
+config.add('email', str, 'user@example.com', validator=regex(r'^[\w\.-]+@[\w\.-]+\.\w+$'))
 
 # This will raise ValueError
 # config.add('_secret', str, 'value')
+
+# This will raise ValueError (cannot have both readonly and validator)
+# config.add('test', str, 'value', readonly=True, validator=lambda x: len(x) > 0)
 ```
 
 ##### remove()
@@ -436,6 +452,7 @@ Data class containing property metadata.
 - `prop_type: type` - Property type
 - `default_value: Any` - Default value
 - `readonly: bool` - Whether property is read-only
+- `validator: callable | None` - Optional validator function
 
 **Example:**
 ```python
@@ -445,7 +462,8 @@ descriptor = PropertyDescriptor(
     name="VERSION",
     prop_type=str,
     default_value="1.0.0",
-    readonly=True
+    readonly=True,
+    validator=None
 )
 ```
 
@@ -565,10 +583,21 @@ config.freeze()
 Raised when:
 - A property definition tuple has the wrong number of elements.
 - A property name starts with an underscore (`_`), as this is reserved.
+- A validator function returns `False` or raises a `ValueError`.
+- Both readonly and validator are specified for the same property.
 
 ```python
+from tyconf.validators import range
+
 # Invalid name
 # config = TyConf(_secret=(str, "value"))  # ValueError: Property name '_secret' is reserved.
+
+# Failed validation
+config = TyConf(port=(int, 8080, range(1024, 65535)))
+# config.port = 80  # ValueError: Value 80 not in range [1024, 65535]
+
+# Cannot have both readonly and validator
+# config = TyConf(port=(int, 8080, True, lambda x: x > 0))  # ValueError
 ```
 
 ### KeyError
@@ -581,6 +610,340 @@ Raised when using dict-style access on non-existent properties:
 
 ---
 
+## Validators Module
+
+TyConf includes a comprehensive set of built-in validators for common validation scenarios. Validators can be imported from `tyconf.validators`.
+
+### Built-in Validators
+
+#### range()
+
+```python
+range(min_val, max_val)
+```
+
+Validate that a numeric value is within a specified range (inclusive).
+
+**Parameters:**
+- `min_val`: Minimum allowed value (inclusive)
+- `max_val`: Maximum allowed value (inclusive)
+
+**Example:**
+```python
+from tyconf import TyConf
+from tyconf.validators import range
+
+config = TyConf(
+    port=(int, 8080, range(1024, 65535)),
+    temperature=(float, 20.0, range(-50.0, 50.0))
+)
+
+config.port = 3000       # OK
+config.port = 80         # ValueError: Value 80 not in range [1024, 65535]
+config.temperature = 25.5  # OK
+config.temperature = 100   # ValueError: Value 100 not in range [-50.0, 50.0]
+```
+
+#### length()
+
+```python
+length(min_len, max_len=None)
+```
+
+Validate the length of strings, lists, or other collections.
+
+**Parameters:**
+- `min_len`: Minimum length (inclusive)
+- `max_len`: Optional maximum length (inclusive). If `None`, only minimum is enforced.
+
+**Example:**
+```python
+from tyconf.validators import length
+
+config = TyConf(
+    username=(str, "admin", length(3, 20)),
+    password=(str, "secret123", length(8)),
+    tags=(list, [], length(1, 5))
+)
+
+config.username = "john"        # OK
+config.username = "ab"          # ValueError: Length 2 not in range [3, 20]
+config.password = "pass"        # ValueError: Length 4 not in range [8, None]
+config.tags = ["python", "config"]  # OK
+config.tags = []                # ValueError: Length 0 not in range [1, 5]
+```
+
+#### regex()
+
+```python
+regex(pattern, flags=0)
+```
+
+Validate that a string matches a regular expression pattern.
+
+**Parameters:**
+- `pattern`: Regular expression pattern (string or compiled pattern)
+- `flags`: Optional regex flags (e.g., `re.IGNORECASE`)
+
+**Example:**
+```python
+from tyconf.validators import regex
+import re
+
+config = TyConf(
+    email=(str, "user@example.com", regex(r'^[\w\.-]+@[\w\.-]+\.\w+$')),
+    phone=(str, "555-1234", regex(r'^\d{3}-\d{4}$')),
+    code=(str, "ABC123", regex(r'^[A-Z]{3}\d{3}$', re.IGNORECASE))
+)
+
+config.email = "test@domain.com"  # OK
+config.email = "invalid-email"    # ValueError: Value does not match pattern
+config.phone = "555-9999"         # OK
+config.phone = "5551234"          # ValueError: Value does not match pattern
+```
+
+#### one_of()
+
+```python
+one_of(*values)
+```
+
+Validate that a value is one of the allowed values.
+
+**Parameters:**
+- `*values`: Variable number of allowed values
+
+**Example:**
+```python
+from tyconf.validators import one_of
+
+config = TyConf(
+    environment=(str, "development", one_of("development", "staging", "production")),
+    log_level=(str, "INFO", one_of("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")),
+    mode=(int, 1, one_of(1, 2, 3))
+)
+
+config.environment = "production"  # OK
+config.environment = "test"        # ValueError: Value 'test' not in allowed values
+config.log_level = "DEBUG"         # OK
+config.mode = 2                    # OK
+config.mode = 4                    # ValueError: Value 4 not in allowed values
+```
+
+#### all_of()
+
+```python
+all_of(*validators)
+```
+
+Combine multiple validators - all must pass for validation to succeed.
+
+**Parameters:**
+- `*validators`: Variable number of validator functions
+
+**Example:**
+```python
+from tyconf.validators import all_of, length, regex
+
+config = TyConf(
+    # Username must be 3-20 chars AND match pattern
+    username=(str, "admin", all_of(
+        length(3, 20),
+        regex(r'^[a-zA-Z][a-zA-Z0-9_]*$')
+    )),
+    # Password must be 8+ chars AND contain special char
+    password=(str, "Secret@123", all_of(
+        length(8),
+        regex(r'.*[!@#$%^&*].*')
+    ))
+)
+
+config.username = "john_doe"    # OK (length OK, pattern OK)
+config.username = "ab"          # ValueError: Failed length validator
+config.username = "123user"     # ValueError: Failed regex validator
+```
+
+#### any_of()
+
+```python
+any_of(*validators)
+```
+
+Alternative validators - at least one must pass for validation to succeed.
+
+**Parameters:**
+- `*validators`: Variable number of validator functions
+
+**Example:**
+```python
+from tyconf.validators import any_of, one_of, range
+
+config = TyConf(
+    # Port can be number in range OR special string value
+    port=(int, 8080, any_of(
+        range(1024, 65535),
+        one_of(0, -1)  # Special: 0 = auto, -1 = disabled
+    ))
+)
+
+config.port = 3000   # OK (in range)
+config.port = 0      # OK (special value)
+config.port = -1     # OK (special value)
+config.port = 80     # ValueError: None of the validators passed
+```
+
+#### not_in()
+
+```python
+not_in(*values)
+```
+
+Validate that a value is NOT one of the disallowed values.
+
+**Parameters:**
+- `*values`: Variable number of disallowed values
+
+**Example:**
+```python
+from tyconf.validators import not_in
+
+config = TyConf(
+    username=(str, "admin", not_in("root", "admin", "administrator")),
+    port=(int, 8080, not_in(22, 23, 25))  # Reserved ports
+)
+
+config.username = "john"    # OK
+config.username = "root"    # ValueError: Value 'root' is not allowed
+config.port = 3000          # OK
+config.port = 22            # ValueError: Value 22 is not allowed
+```
+
+### Custom Validators
+
+You can create custom validators as simple lambda functions or full functions.
+
+#### Lambda Validators
+
+For simple validation logic, use lambda functions:
+
+```python
+config = TyConf(
+    # Positive numbers only
+    count=(int, 10, lambda x: x > 0),
+    
+    # Non-empty strings
+    name=(str, "MyApp", lambda x: len(x) > 0),
+    
+    # Even numbers only
+    even_number=(int, 4, lambda x: x % 2 == 0)
+)
+
+config.count = 5     # OK
+config.count = -1    # ValueError: Validation failed
+```
+
+Lambda validators should return `True` if valid, `False` if invalid, or `None` to skip validation.
+
+#### Custom Validator Functions
+
+For complex validation with custom error messages, create validator functions that raise `ValueError`:
+
+```python
+def validate_email(value):
+    """Validate email address format."""
+    if '@' not in value or '.' not in value:
+        raise ValueError(f"Invalid email address: {value}")
+    return True
+
+def validate_password_strength(value):
+    """Validate password meets strength requirements."""
+    if len(value) < 8:
+        raise ValueError("Password must be at least 8 characters")
+    if not any(c.isupper() for c in value):
+        raise ValueError("Password must contain uppercase letter")
+    if not any(c.isdigit() for c in value):
+        raise ValueError("Password must contain a number")
+    return True
+
+config = TyConf(
+    email=(str, "user@example.com", validate_email),
+    password=(str, "Secret123", validate_password_strength)
+)
+
+# Valid assignments
+config.email = "test@domain.com"  # OK
+config.password = "MyPass123"     # OK
+
+# Invalid assignments with custom messages
+# config.email = "invalid"
+# ValueError: Invalid email address: invalid
+
+# config.password = "weak"
+# ValueError: Password must be at least 8 characters
+```
+
+### Validator Behavior
+
+Validators are callables that are invoked with the value to validate. They can:
+
+1. **Return `True`**: Validation succeeds
+2. **Return `False`**: Validation fails with a generic error message
+3. **Return `None`**: Skip validation (useful for conditional validation)
+4. **Raise `ValueError`**: Validation fails with a custom error message
+
+**Example:**
+```python
+def conditional_validator(value):
+    """Only validate non-None values."""
+    if value is None:
+        return None  # Skip validation
+    if value < 0:
+        raise ValueError("Must be non-negative")
+    return True
+```
+
+### Validation Timing
+
+Validators are called:
+1. **During initialization**: When the property is first created
+2. **On assignment**: When the property value is changed via attribute or dict-style access
+3. **On update**: When the property is modified via the `update()` method
+
+**Example:**
+```python
+from tyconf.validators import range
+
+# Validation on initialization
+config = TyConf(
+    port=(int, 8080, range(1024, 65535))  # Validates 8080
+)
+
+# Validation on assignment
+config.port = 3000  # Validates 3000
+
+# Validation on update
+config.update(port=9000)  # Validates 9000
+```
+
+### Validators vs Read-Only
+
+Validators and readonly flags are **mutually exclusive** - you cannot have both on the same property:
+
+```python
+# ❌ Wrong - cannot have both validator and readonly
+# config = TyConf(
+#     VERSION=(str, "1.0.0", True, lambda x: len(x) > 0)
+# )
+
+# ✅ Correct - choose one
+config = TyConf(
+    VERSION=(str, "1.0.0", True),           # Read-only
+    port=(int, 8080, lambda x: x > 1024)    # Validator
+)
+```
+
+---
+
 ## Version Information
 
 Access version information from the package:
@@ -588,7 +951,7 @@ Access version information from the package:
 ```python
 import tyconf
 
-print(tyconf.__version__)    # '1.0.1'
+print(tyconf.__version__)    # '1.1.0'
 print(tyconf.__author__)     # 'barabasz'
 print(tyconf.__license__)    # 'MIT'
 print(tyconf.__url__)        # 'https://github.com/barabasz/tyconf'

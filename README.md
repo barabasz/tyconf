@@ -10,22 +10,25 @@ TyConf is a modern Python library that makes managing application configuration 
 
 ```python
 from tyconf import TyConf
+from tyconf.validators import range
 
-# Create configuration with type-safe properties
+# Create configuration with type-safe properties and validation
 config = TyConf(
     host=(str, "localhost"),
-    port=(int, 8080),
+    port=(int, 8080, range(1024, 65535)),  # Validated range
     debug=(bool, True)
 )
 
 # Access values easily
 print(config.host)      # 'localhost'
-config.port = 3000      # Type-checked automatically
+config.port = 3000      # Type-checked and validated automatically
+# config.port = 80      # ValueError: Value 80 not in range [1024, 65535]
 ```
 
 ## Key Features
 
 ✅ **Type Safety** - Runtime type validation with support for `Optional` and `Union` types  
+✅ **Value Validation** - Built-in and custom validators to enforce constraints (ranges, patterns, etc.)  
 ✅ **Read-Only Properties** - Protect critical configuration from accidental changes  
 ✅ **Freeze/Unfreeze** - Lock entire configuration to prevent modifications  
 ✅ **Intuitive API** - Both attribute (`config.host`) and dict-style (`config['host']`) access  
@@ -36,6 +39,38 @@ config.port = 3000      # Type-checked automatically
 
 ```bash
 pip install tyconf
+```
+
+## Validation Examples
+
+Ensure values meet your requirements with validators:
+
+```python
+from tyconf import TyConf
+from tyconf.validators import range, length, regex, one_of
+
+config = TyConf(
+    # Numeric ranges
+    port=(int, 8080, range(1024, 65535)),
+    
+    # String length
+    username=(str, "admin", length(3, 20)),
+    
+    # Pattern matching
+    email=(str, "user@example.com", regex(r'^[\w\.-]+@[\w\.-]+\.\w+$')),
+    
+    # Allowed values
+    environment=(str, "dev", one_of("dev", "staging", "production")),
+    
+    # Custom validators
+    password=(str, "Secret123", lambda x: len(x) >= 8)
+)
+
+# All assignments are automatically validated
+config.port = 3000                  # ✓ OK
+# config.port = 80                  # ✗ ValueError: not in range
+config.environment = "production"   # ✓ OK
+# config.environment = "test"       # ✗ ValueError: not in allowed values
 ```
 
 ## Documentation

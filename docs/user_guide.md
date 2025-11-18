@@ -184,6 +184,291 @@ config.tags = "not a list"  # TypeError: expected list, got str
 
 ---
 
+## Value Validation
+
+Beyond type validation, TyConf supports value validation through validators. Validators ensure that values meet specific criteria such as ranges, patterns, or custom business rules.
+
+### Using Lambda Validators
+
+For simple validation logic, use lambda functions:
+
+```python
+config = TyConf(
+    # Port must be greater than 1024
+    port=(int, 8080, lambda x: x > 1024),
+    
+    # Username must be non-empty
+    username=(str, "admin", lambda x: len(x) > 0),
+    
+    # Count must be even
+    even_count=(int, 10, lambda x: x % 2 == 0)
+)
+
+# Valid assignments
+config.port = 3000        # OK
+config.username = "john"  # OK
+config.even_count = 4     # OK
+
+# Invalid assignments
+# config.port = 80         # ValueError: Validation failed
+# config.username = ""     # ValueError: Validation failed
+# config.even_count = 3    # ValueError: Validation failed
+```
+
+Lambda validators should return:
+- `True` if the value is valid
+- `False` if the value is invalid (raises generic error)
+- `None` to skip validation
+
+### Using Custom Validator Functions
+
+For complex validation with meaningful error messages, create validator functions:
+
+```python
+def validate_email(value):
+    """Validate email format."""
+    if '@' not in value or '.' not in value:
+        raise ValueError(f"Invalid email address: {value}")
+    return True
+
+def validate_password(value):
+    """Validate password strength."""
+    if len(value) < 8:
+        raise ValueError("Password must be at least 8 characters")
+    if not any(c.isupper() for c in value):
+        raise ValueError("Password must contain an uppercase letter")
+    if not any(c.isdigit() for c in value):
+        raise ValueError("Password must contain a number")
+    return True
+
+config = TyConf(
+    email=(str, "user@example.com", validate_email),
+    password=(str, "Secret123", validate_password)
+)
+
+# Valid
+config.email = "test@domain.com"  # OK
+
+# Invalid with custom error messages
+# config.email = "invalid-email"
+# ValueError: Invalid email address: invalid-email
+
+# config.password = "weak"
+# ValueError: Password must be at least 8 characters
+```
+
+### Built-in Validators
+
+TyConf provides several built-in validators in the `tyconf.validators` module:
+
+#### Numeric Range Validation
+
+```python
+from tyconf.validators import range
+
+config = TyConf(
+    port=(int, 8080, range(1024, 65535)),
+    temperature=(float, 20.0, range(-50.0, 50.0)),
+    percentage=(int, 50, range(0, 100))
+)
+
+config.port = 3000         # OK
+# config.port = 80         # ValueError: Value 80 not in range [1024, 65535]
+```
+
+#### Length Validation
+
+```python
+from tyconf.validators import length
+
+config = TyConf(
+    username=(str, "admin", length(3, 20)),
+    password=(str, "secret123", length(8)),  # Minimum only
+    tags=(list, [], length(1, 5))
+)
+
+config.username = "john"      # OK
+# config.username = "ab"      # ValueError: Length 2 not in range [3, 20]
+config.tags = ["python"]      # OK
+# config.tags = []            # ValueError: Length 0 not in range [1, 5]
+```
+
+#### Pattern Matching
+
+```python
+from tyconf.validators import regex
+
+config = TyConf(
+    email=(str, "user@example.com", regex(r'^[\w\.-]+@[\w\.-]+\.\w+$')),
+    phone=(str, "555-1234", regex(r'^\d{3}-\d{4}$')),
+    code=(str, "ABC123", regex(r'^[A-Z]{3}\d{3}$'))
+)
+
+config.email = "test@domain.com"  # OK
+# config.email = "invalid"        # ValueError: Value does not match pattern
+```
+
+#### Allowed Values
+
+```python
+from tyconf.validators import one_of
+
+config = TyConf(
+    environment=(str, "development", one_of("development", "staging", "production")),
+    log_level=(str, "INFO", one_of("DEBUG", "INFO", "WARNING", "ERROR"))
+)
+
+config.environment = "production"  # OK
+# config.environment = "test"      # ValueError: Value 'test' not in allowed values
+```
+
+#### Combining Validators
+
+Use `all_of()` when all validators must pass:
+
+```python
+from tyconf.validators import all_of, length, regex
+
+config = TyConf(
+    # Username must be 3-20 chars AND alphanumeric
+    username=(str, "admin", all_of(
+        length(3, 20),
+        regex(r'^[a-zA-Z][a-zA-Z0-9_]*$')
+    ))
+)
+
+config.username = "john_doe"    # OK
+# config.username = "ab"        # ValueError: Failed length validator
+# config.username = "123user"   # ValueError: Failed regex validator
+```
+
+Use `any_of()` when at least one validator must pass:
+
+```python
+from tyconf.validators import any_of, range, one_of
+
+config = TyConf(
+    # Port can be in range OR special value (0 = auto)
+    port=(int, 8080, any_of(
+        range(1024, 65535),
+        one_of(0)
+    ))
+)
+
+config.port = 3000   # OK (in range)
+config.port = 0      # OK (special value)
+# config.port = 80   # ValueError: None of the validators passed
+```
+
+#### Disallowed Values
+
+```python
+from tyconf.validators import not_in
+
+config = TyConf(
+    username=(str, "john", not_in("root", "admin", "administrator")),
+    port=(int, 8080, not_in(22, 23, 25))  # Reserved ports
+)
+
+config.username = "mary"  # OK
+# config.username = "root"  # ValueError: Value 'root' is not allowed
+```
+
+### Validation Timing
+
+Validators are executed at three key points:
+
+1. **Initialization**: When creating the property
+```python
+# Validates the initial value (8080)
+config = TyConf(port=(int, 8080, range(1024, 65535)))
+```
+
+2. **Assignment**: When changing the value
+```python
+config.port = 3000  # Validates 3000
+```
+
+3. **Update**: When using the update() method
+```python
+config.update(port=9000)  # Validates 9000
+```
+
+### Validators vs Read-Only
+
+**Important:** Validators and readonly are mutually exclusive - you cannot use both on the same property.
+
+```python
+# ❌ Wrong - cannot have both
+# This is not valid because the third parameter is auto-detected:
+# - If it's a bool → readonly
+# - If it's a callable → validator
+
+# ✅ Correct - use one or the other
+config = TyConf(
+    VERSION=(str, "1.0.0", True),              # Read-only (bool)
+    port=(int, 8080, range(1024, 65535)),      # Validator (callable)
+    debug=(bool, False)                        # Neither (mutable)
+)
+```
+
+The third parameter is auto-detected:
+- If `bool`: Sets the readonly flag
+- If `callable`: Sets a validator function
+
+### Complete Validation Example
+
+Here's a comprehensive example using multiple validation types:
+
+```python
+from tyconf import TyConf
+from tyconf.validators import range, length, regex, one_of, all_of
+from typing import Optional
+
+def validate_url(value):
+    """Custom URL validator."""
+    if value and not value.startswith(('http://', 'https://')):
+        raise ValueError(f"URL must start with http:// or https://: {value}")
+    return True
+
+# Application configuration with validation
+config = TyConf(
+    # Metadata (read-only, no validation needed)
+    APP_NAME=(str, "MyWebApp", True),
+    VERSION=(str, "1.0.0", True),
+    
+    # Server settings with validation
+    host=(str, "localhost"),
+    port=(int, 8080, range(1024, 65535)),
+    workers=(int, 4, range(1, 16)),
+    
+    # Database with validation
+    database_url=(Optional[str], None, validate_url),
+    db_pool_size=(int, 10, range(5, 100)),
+    
+    # User settings with complex validation
+    admin_email=(str, "admin@example.com", regex(r'^[\w\.-]+@[\w\.-]+\.\w+$')),
+    environment=(str, "development", one_of("development", "staging", "production")),
+    
+    # Password with multiple validators
+    api_key=(str, "Secret123!", all_of(
+        length(8, 64),
+        regex(r'.*[A-Z].*'),  # Must have uppercase
+        regex(r'.*[0-9].*')   # Must have digit
+    ))
+)
+
+# All assignments are validated
+config.port = 3000                      # OK
+# config.port = 80                      # ValueError: out of range
+config.environment = "production"       # OK
+# config.environment = "test"           # ValueError: not in allowed values
+config.database_url = "https://db.com"  # OK
+# config.database_url = "ftp://db.com"  # ValueError: invalid URL
+```
+
+---
+
 ## Read-Only Properties
 
 Protect critical configuration from modification with read-only properties:
@@ -554,7 +839,11 @@ config = TyConf(port=(int, 8080, False))
 config = TyConf(debug=(bool, True))
 # or with readonly flag
 config = TyConf(debug=(bool, True, False))
+# or with validator
+config = TyConf(debug=(bool, True, lambda x: isinstance(x, bool)))
 ```
+
+**Note:** The third parameter is auto-detected - if it's a `bool`, it sets readonly; if it's a `callable`, it sets a validator.
 
 ### Mistake 4: Providing String Instead of Tuple
 
@@ -628,8 +917,12 @@ config.VERSION = "2.0.0"  # OK
 | `(type, value)` | 2 | `debug=(bool, True)` | Mutable property |
 | `(type, value, False)` | 3 | `debug=(bool, True, False)` | Explicitly mutable |
 | `(type, value, True)` | 3 | `VERSION=(str, "1.0", True)` | Read-only property |
+| `(type, value, callable)` | 3 | `port=(int, 8080, lambda x: x > 1024)` | Property with validator |
 
-**Remember:** Always use tuples with 2 or 3 elements!
+**Remember:** 
+- Always use tuples with 2 or 3 elements!
+- The third parameter is auto-detected: `bool` → readonly, `callable` → validator
+- Validators and readonly are mutually exclusive
 
 ---
 
@@ -639,8 +932,15 @@ Here's a complete example for a web application:
 
 ```python
 from tyconf import TyConf
+from tyconf.validators import range, regex, one_of
 from typing import Optional
 import os
+
+def validate_db_url(value):
+    """Validate database URL format."""
+    if value and not any(value.startswith(p) for p in ['postgresql://', 'mysql://', 'sqlite://']):
+        raise ValueError("Database URL must start with postgresql://, mysql://, or sqlite://")
+    return True
 
 # Define configuration with proper tuple format
 app_config = TyConf(
@@ -649,25 +949,29 @@ app_config = TyConf(
     VERSION=(str, "2.0.0", True),
     ENVIRONMENT=(str, os.getenv('ENV', 'development'), True),
     
-    # Server settings (mutable)
+    # Server settings (mutable with validation)
     host=(str, "localhost"),
-    port=(int, 5000),
+    port=(int, 5000, range(1024, 65535)),
     debug=(bool, True),
-    workers=(int, 4),
+    workers=(int, 4, range(1, 16)),
     
-    # Database (mutable)
-    database_url=(Optional[str], None),
-    db_pool_size=(int, 10),
+    # Database (mutable with validation)
+    database_url=(Optional[str], None, validate_db_url),
+    db_pool_size=(int, 10, range(5, 100)),
     
-    # Features (mutable)
+    # Features (mutable with validation)
     enable_api=(bool, True),
-    rate_limit=(Optional[int], 100)
+    rate_limit=(Optional[int], 100, range(1, 10000)),
+    log_level=(str, "INFO", one_of("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")),
+    admin_email=(Optional[str], None, regex(r'^[\w\.-]+@[\w\.-]+\.\w+$'))
 )
 
-# Configure from environment
+# Configure from environment (with validation)
 app_config.debug = os.getenv('DEBUG', 'false').lower() == 'true'
 app_config.port = int(os.getenv('PORT', '5000'))
 app_config.database_url = os.getenv('DATABASE_URL')
+if os.getenv('LOG_LEVEL'):
+    app_config.log_level = os.getenv('LOG_LEVEL')
 
 # Display configuration
 print(f"Starting {app_config.APP_NAME} v{app_config.VERSION}")
