@@ -14,14 +14,16 @@ from tyconf.validators import range
 
 # Create configuration with type-safe properties and validators
 config = TyConf(
-    host=(str, "localhost"),
-    port=(int, 8080, range(1024, 65535)),  # Validated range
-    debug=(bool, True)
+    host=(str, "localhost"),               # Mutable string
+    debug=(bool, True),                    # Mutable boolean
+    port=(int, 8080, range(1024, 65535)),  # Validated mutable range
+    users=(list, ["admin", "root"], True)  # Immutable list
 )
 
 # Access values easily
-print(config.host)      # 'localhost'
-config.port = 3000      # Type-checked and range-validated automatically
+print(config.host)       # 'localhost'
+config.port = 3000       # Type-checked and range-validated automatically
+config.users = ["guest"] # Rises AttributeError: Property 'users' is read-only
 ```
 
 ## Key Features
