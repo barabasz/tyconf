@@ -23,6 +23,7 @@ config = TyConf(
 # Access values easily
 print(config.host)       # 'localhost'
 config.port = 3000       # Type-checked and range-validated automatically
+config.port = "3000"     # Rises TypeError: Property 'port': expected int, got str
 config.users = ["guest"] # Rises AttributeError: Property 'users' is read-only
 ```
 
