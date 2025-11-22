@@ -27,20 +27,69 @@ config.port = "3000"     # Rises TypeError: Property 'port': expected int, got s
 config.users = ["guest"] # Rises AttributeError: Property 'users' is read-only
 ```
 
+## Serialization
+
+TyConf supports exporting and importing configurations in multiple formats:
+
+```python
+from tyconf import TyConf
+
+config = TyConf(
+    host=(str, "localhost"),
+    port=(int, 8080),
+    debug=(bool, True)
+)
+
+# Export to JSON (with full metadata)
+config.to_json('config.json')
+
+# Export to JSON (values only)
+config.to_json('values.json', values_only=True)
+
+# Export to TOML (requires: pip install tyconf[toml])
+config.to_toml('config.toml')
+
+# Import from JSON
+config = TyConf.from_json('config.json')
+
+# Import from TOML (built-in via tomllib)
+config = TyConf.from_toml('config.toml')
+
+# Load from environment variables
+config = TyConf.from_env(prefix='APP_', schema={
+    'host': str,
+    'port': int,
+    'debug': bool
+})
+
+# Merge configurations
+config.load_json('overrides.json')  # Merge JSON into existing config
+config.load_env(prefix='APP_')      # Merge environment variables
+```
+
 ## Key Features
 
 ✅ **Type Safety** - Runtime type validation with support for `Optional` and `Union` types  
 ✅ **Value Validation** - Built-in validators (range, length, regex, etc.) and custom validation functions  
 ✅ **Read-Only Properties** - Protect critical configuration from accidental changes  
 ✅ **Freeze/Unfreeze** - Lock entire configuration to prevent modifications  
+✅ **Serialization** - Export/import configurations to JSON, TOML, and environment variables  
 ✅ **Intuitive API** - Both attribute (`config.host`) and dict-style (`config['host']`) access  
 ✅ **Copy & Reset** - Easily duplicate or restore default configurations  
-✅ **Zero Dependencies** - Pure Python with no external requirements  
+✅ **Zero Dependencies** - Pure Python with no external requirements (TOML write requires optional dependency)  
 
 ## Installation
 
 ```bash
 pip install tyconf
+```
+
+**Requirements:** Python 3.13+
+
+**Optional Dependencies:**
+```bash
+# For TOML export support (TOML import is built-in via tomllib)
+pip install tyconf[toml]
 ```
 
 ## Documentation

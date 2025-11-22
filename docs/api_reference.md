@@ -373,6 +373,329 @@ for name, value in config.items():
     print(f"{name} = {value}")
 ```
 
+##### to_dict()
+
+```python
+to_dict(values_only: bool = False) -> dict
+```
+
+Export configuration to dictionary format.
+
+**Parameters:**
+- `values_only`: If `True`, exports only property values. If `False` (default), exports full metadata including types, defaults, and readonly flags.
+
+**Returns:**
+- Dictionary with configuration data
+
+**Example:**
+```python
+# Full metadata export
+data = config.to_dict()
+# {
+#   "_tyconf_version": "1.2.0",
+#   "properties": {
+#     "host": {
+#       "type": "str",
+#       "value": "localhost",
+#       "default": "localhost",
+#       "readonly": false
+#     }
+#   }
+# }
+
+# Values only export
+values = config.to_dict(values_only=True)
+# {"host": "localhost", "port": 8080}
+```
+
+##### from_dict()
+
+```python
+@classmethod
+from_dict(cls, data: dict) -> TyConf
+```
+
+Load configuration from dictionary format.
+
+**Parameters:**
+- `data`: Dictionary with configuration data (can be full metadata or values only)
+
+**Returns:**
+- New `TyConf` instance
+
+**Raises:**
+- `ValueError`: If dictionary format is invalid
+- `TypeError`: If values don't match their declared types
+
+**Example:**
+```python
+data = {
+    "_tyconf_version": "1.2.0",
+    "properties": {
+        "host": {"type": "str", "value": "localhost", "default": "localhost", "readonly": False}
+    }
+}
+config = TyConf.from_dict(data)
+
+# Or with values only
+values = {"host": "localhost", "port": 8080}
+config = TyConf.from_dict(values)
+```
+
+**Note:** Validators are not included in serialized data and must be re-added if needed.
+
+##### to_json()
+
+```python
+to_json(path: Optional[str] = None, values_only: bool = False, indent: int = 2) -> Optional[str]
+```
+
+Export configuration to JSON format.
+
+**Parameters:**
+- `path`: File path to save JSON. If `None`, returns JSON string instead.
+- `values_only`: If `True`, exports only property values. If `False` (default), exports full metadata.
+- `indent`: Number of spaces for indentation (default: 2)
+
+**Returns:**
+- JSON string if `path` is `None`, otherwise `None`
+
+**Raises:**
+- `IOError`: If file cannot be written
+
+**Example:**
+```python
+# Save to file
+config.to_json('config.json')
+
+# Save values only
+config.to_json('values.json', values_only=True)
+
+# Get as string
+json_str = config.to_json()
+print(json_str)
+```
+
+##### from_json()
+
+```python
+@classmethod
+from_json(cls, source: str) -> TyConf
+```
+
+Load configuration from JSON file or string.
+
+**Parameters:**
+- `source`: File path or JSON string
+
+**Returns:**
+- New `TyConf` instance
+
+**Raises:**
+- `ValueError`: If JSON is invalid or format is incorrect
+- `IOError`: If file cannot be read
+- `TypeError`: If values don't match their declared types
+
+**Example:**
+```python
+# Load from file
+config = TyConf.from_json('config.json')
+
+# Load from string
+json_str = '{"host": "localhost", "port": 8080}'
+config = TyConf.from_json(json_str)
+```
+
+##### to_toml()
+
+```python
+to_toml(path: Optional[str] = None, values_only: bool = False) -> Optional[str]
+```
+
+Export configuration to TOML format.
+
+**Parameters:**
+- `path`: File path to save TOML. If `None`, returns TOML string instead.
+- `values_only`: If `True`, exports only property values. If `False` (default), exports full metadata.
+
+**Returns:**
+- TOML string if `path` is `None`, otherwise `None`
+
+**Raises:**
+- `ImportError`: If `tomli-w` package is not installed
+- `IOError`: If file cannot be written
+
+**Example:**
+```python
+# Requires: pip install tyconf[toml]
+
+# Save to file
+config.to_toml('config.toml')
+
+# Save values only
+config.to_toml('values.toml', values_only=True)
+
+# Get as string
+toml_str = config.to_toml()
+```
+
+**Note:** TOML export requires the `tomli-w` package. Install with `pip install tyconf[toml]`.
+
+##### from_toml()
+
+```python
+@classmethod
+from_toml(cls, source: str) -> TyConf
+```
+
+Load configuration from TOML file or string.
+
+**Parameters:**
+- `source`: File path or TOML string
+
+**Returns:**
+- New `TyConf` instance
+
+**Raises:**
+- `ValueError`: If TOML is invalid or format is incorrect
+- `IOError`: If file cannot be read
+- `TypeError`: If values don't match their declared types
+
+**Example:**
+```python
+# Load from file (built-in, no extra dependency)
+config = TyConf.from_toml('config.toml')
+
+# Load from string
+toml_str = '''
+host = "localhost"
+port = 8080
+'''
+config = TyConf.from_toml(toml_str)
+```
+
+**Note:** TOML import uses Python's built-in `tomllib` (Python 3.13+) and requires no extra dependencies.
+
+##### from_env()
+
+```python
+@classmethod
+from_env(cls, prefix: str = '', schema: Optional[dict[str, type]] = None, strict: bool = False) -> TyConf
+```
+
+Load configuration from environment variables with automatic type conversion.
+
+**Parameters:**
+- `prefix`: Prefix for environment variable names (e.g., `'APP_'` matches `APP_HOST`, `APP_PORT`)
+- `schema`: Dictionary mapping property names to their types. If `None`, all matching env vars are loaded as strings.
+- `strict`: If `True`, raises error if schema property is not found in environment. If `False` (default), uses None or empty values.
+
+**Returns:**
+- New `TyConf` instance
+
+**Raises:**
+- `ValueError`: If type conversion fails or required variables are missing (when `strict=True`)
+
+**Example:**
+```python
+import os
+
+# Set environment variables
+os.environ['APP_HOST'] = 'production.example.com'
+os.environ['APP_PORT'] = '3000'
+os.environ['APP_DEBUG'] = 'true'
+
+# Load with schema
+config = TyConf.from_env(
+    prefix='APP_',
+    schema={
+        'host': str,
+        'port': int,
+        'debug': bool
+    }
+)
+
+print(config.host)   # 'production.example.com'
+print(config.port)   # 3000 (int)
+print(config.debug)  # True (bool)
+```
+
+**Type Conversion:**
+- `bool`: `"true"`, `"yes"`, `"1"` → `True`; `"false"`, `"no"`, `"0"` → `False` (case-insensitive)
+- `int`: Standard integer conversion
+- `float`: Standard float conversion
+- `list`, `dict`: JSON format strings
+- `str`: No conversion
+
+##### load_json()
+
+```python
+load_json(source: str, strict: bool = False) -> None
+```
+
+Merge JSON data into existing configuration.
+
+**Parameters:**
+- `source`: File path or JSON string
+- `strict`: If `True`, raises error if JSON contains properties not in config. If `False` (default), ignores extra properties.
+
+**Raises:**
+- `ValueError`: If JSON is invalid
+- `IOError`: If file cannot be read
+- `TypeError`: If values don't match property types
+- `AttributeError`: If configuration is frozen or property is read-only
+
+**Example:**
+```python
+config = TyConf(
+    host=(str, "localhost"),
+    port=(int, 8080),
+    debug=(bool, False)
+)
+
+# Merge from file
+config.load_json('overrides.json')
+
+# Merge from string
+config.load_json('{"debug": true, "port": 3000}')
+```
+
+##### load_env()
+
+```python
+load_env(prefix: str = '', strict: bool = False) -> None
+```
+
+Merge environment variables into existing configuration.
+
+**Parameters:**
+- `prefix`: Prefix for environment variable names
+- `strict`: If `True`, only updates existing properties. If `False` (default), can add new properties.
+
+**Raises:**
+- `ValueError`: If type conversion fails
+- `AttributeError`: If configuration is frozen or property is read-only
+
+**Example:**
+```python
+import os
+
+config = TyConf(
+    host=(str, "localhost"),
+    port=(int, 8080)
+)
+
+# Set environment overrides
+os.environ['APP_HOST'] = '0.0.0.0'
+os.environ['APP_PORT'] = '3000'
+
+# Merge environment variables
+config.load_env(prefix='APP_')
+
+print(config.host)  # '0.0.0.0'
+print(config.port)  # 3000
+```
+
 #### Properties
 
 ##### frozen
@@ -899,7 +1222,8 @@ Access version information from the package:
 ```python
 import tyconf
 
-print(tyconf.__version__)    # '1.1.0'
+print(tyconf.__version__)    # '1.2.0'
+print(tyconf.__date__)       # '2025-01-22'
 print(tyconf.__author__)     # 'barabasz'
 print(tyconf.__license__)    # 'MIT'
 print(tyconf.__url__)        # 'https://github.com/barabasz/tyconf'

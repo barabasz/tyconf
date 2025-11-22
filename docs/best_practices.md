@@ -10,9 +10,10 @@ Guidelines for using TyConf effectively in your applications.
 4. [Freezing Configuration](#freezing-configuration)
 5. [Environment Variables](#environment-variables)
 6. [Testing](#testing)
-7. [Error Handling](#error-handling)
-8. [Performance](#performance)
-9. [Common Patterns](#common-patterns)
+7. [Configuration Serialization](#configuration-serialization)
+8. [Error Handling](#error-handling)
+9. [Performance](#performance)
+10. [Common Patterns](#common-patterns)
 
 ---
 
@@ -353,6 +354,367 @@ def test_config_validation():
     config.freeze()
     assert config.frozen
 ```
+
+---
+
+## Configuration Serialization
+
+### When to Use Values-Only vs Full Metadata
+
+Choose the appropriate export format based on your use case:
+
+#### Use Full Metadata When:
+
+```python
+# Application state snapshots
+config.to_json('snapshot.json')  # Preserves everything
+
+# Configuration backups
+config.to_json('backup.json')
+
+# Sharing between TyConf applications
+config.to_toml('shared-config.toml')
+```
+
+**Benefits:**
+- Complete state preservation
+- Type validation on reload
+- Maintains readonly flags
+- Preserves default values for reset
+- Can fully reconstruct configuration
+
+#### Use Values-Only When:
+
+```python
+# Configuration overrides
+config.to_json('overrides.json', values_only=True)
+
+# External tool integration
+config.to_toml('settings.toml', values_only=True)
+
+# Manual editing required
+config.to_json('editable-config.json', values_only=True)
+```
+
+**Benefits:**
+- Simpler, more readable format
+- Compatible with non-TyConf tools
+- Easier to edit manually
+- Smaller file size
+- Standard JSON/TOML format
+
+### Handling Validators
+
+Validators cannot be serialized. Use one of these patterns:
+
+#### Pattern 1: Define Validators in Code
+
+```python
+# Store values only
+config.to_json('config.json', values_only=True)
+
+# Define validators in application
+def create_config():
+    """Create configuration with validators."""
+    config = TyConf(
+        host=(str, "localhost"),
+        port=(int, 8080, range(1024, 65535)),  # Validator in code
+        timeout=(int, 30, lambda x: x > 0)
+    )
+    
+    # Load values from file
+    config.load_json('config.json')
+    
+    return config
+```
+
+#### Pattern 2: Re-add Validators After Loading
+
+```python
+from tyconf.validators import range, length
+
+# Load configuration
+config = TyConf.from_json('config.json')
+
+# Re-add validators for critical properties
+port_value = config.port
+config.remove('port')
+config.add('port', int, port_value, validator=range(1024, 65535))
+
+username_value = config.username
+config.remove('username')
+config.add('username', str, username_value, validator=length(min_len=3))
+```
+
+#### Pattern 3: Validation Layer
+
+```python
+def validate_config(config):
+    """Separate validation layer."""
+    from tyconf.validators import range, regex
+    
+    # Validate port
+    if not (1024 <= config.port <= 65535):
+        raise ValueError(f"Invalid port: {config.port}")
+    
+    # Validate email
+    if not regex(r'^[\w\.-]+@[\w\.-]+\.\w+$')(config.email):
+        raise ValueError(f"Invalid email: {config.email}")
+    
+    return True
+
+# Load and validate
+config = TyConf.from_json('config.json')
+validate_config(config)
+```
+
+### Loading Configurations in Production
+
+#### Recommended Loading Order
+
+```python
+import os
+from tyconf import TyConf
+
+def load_production_config():
+    """Load configuration with proper precedence."""
+    from tyconf.validators import range, one_of
+    
+    # 1. Start with defaults in code
+    config = TyConf(
+        host=(str, "localhost"),
+        port=(int, 8080, range(1024, 65535)),
+        workers=(int, 4, lambda x: x > 0),
+        debug=(bool, False),
+        log_level=(str, "INFO", one_of("DEBUG", "INFO", "WARNING", "ERROR"))
+    )
+    
+    # 2. Load base configuration file (optional)
+    if os.path.exists('/etc/myapp/config.json'):
+        config.load_json('/etc/myapp/config.json')
+    
+    # 3. Load environment-specific config (optional)
+    env = os.getenv('ENV', 'production')
+    env_config = f'/etc/myapp/config.{env}.json'
+    if os.path.exists(env_config):
+        config.load_json(env_config)
+    
+    # 4. Override with environment variables (highest priority)
+    config.load_env(prefix='MYAPP_')
+    
+    # 5. Validate and freeze
+    validate_config(config)
+    config.freeze()
+    
+    return config
+```
+
+#### Precedence Strategy
+
+Use this precedence order (later overrides earlier):
+1. **Code defaults** - Base configuration in source code
+2. **Base config file** - Shared settings (e.g., `/etc/myapp/config.json`)
+3. **Environment config** - Environment-specific (e.g., `config.production.json`)
+4. **Environment variables** - Runtime overrides (highest priority)
+
+### Environment Variable Patterns
+
+#### Naming Convention
+
+Use consistent naming for environment variables:
+
+```python
+# Good: Clear prefix and structure
+APP_DATABASE_HOST=localhost
+APP_DATABASE_PORT=5432
+APP_CACHE_ENABLED=true
+APP_CACHE_TTL=3600
+
+# Load with prefix
+config = TyConf.from_env(
+    prefix='APP_',
+    schema={
+        'database_host': str,
+        'database_port': int,
+        'cache_enabled': bool,
+        'cache_ttl': int
+    }
+)
+```
+
+#### Boolean Environment Variables
+
+Handle boolean values consistently:
+
+```python
+import os
+
+# These all evaluate to True
+os.environ['APP_DEBUG'] = 'true'
+os.environ['APP_DEBUG'] = 'True'
+os.environ['APP_DEBUG'] = 'yes'
+os.environ['APP_DEBUG'] = '1'
+
+# These all evaluate to False
+os.environ['APP_DEBUG'] = 'false'
+os.environ['APP_DEBUG'] = 'False'
+os.environ['APP_DEBUG'] = 'no'
+os.environ['APP_DEBUG'] = '0'
+os.environ['APP_DEBUG'] = ''
+
+config = TyConf.from_env(
+    prefix='APP_',
+    schema={'debug': bool}
+)
+```
+
+#### Complex Types in Environment
+
+For complex types, use JSON format:
+
+```python
+import os
+
+# List in environment variable
+os.environ['APP_ALLOWED_HOSTS'] = '["example.com", "www.example.com"]'
+
+# Dictionary in environment variable
+os.environ['APP_DATABASE'] = '{"host": "localhost", "port": 5432}'
+
+config = TyConf.from_env(
+    prefix='APP_',
+    schema={
+        'allowed_hosts': list,
+        'database': dict
+    }
+)
+
+print(config.allowed_hosts)  # ['example.com', 'www.example.com']
+print(config.database)       # {'host': 'localhost', 'port': 5432}
+```
+
+### Security Considerations
+
+#### Don't Commit Secrets
+
+**❌ Wrong:**
+```python
+# config.json (committed to git)
+{
+    "database_password": "secret123",  # NEVER DO THIS
+    "api_key": "key_abc123"
+}
+```
+
+**✅ Correct:**
+```python
+# config.json (committed to git) - no secrets
+{
+    "database_host": "localhost",
+    "database_port": 5432
+}
+
+# Secrets from environment only
+os.environ['APP_DATABASE_PASSWORD'] = 'secret123'
+os.environ['APP_API_KEY'] = 'key_abc123'
+
+config = TyConf.from_json('config.json')
+config.load_env(prefix='APP_')  # Adds secrets at runtime
+```
+
+#### Separate Public and Private Config
+
+```python
+# public-config.json - Safe to commit
+{
+    "host": "localhost",
+    "port": 8080,
+    "workers": 4
+}
+
+# Load public config
+config = TyConf.from_json('public-config.json')
+
+# Add secrets from environment (never committed)
+config.add('database_password', str, os.getenv('DB_PASSWORD', ''))
+config.add('api_key', str, os.getenv('API_KEY', ''))
+
+# Freeze to prevent accidental exposure
+config.freeze()
+```
+
+#### Validate Before Using
+
+```python
+def load_secure_config():
+    """Load config with security validation."""
+    config = TyConf.from_json('config.json')
+    config.load_env(prefix='APP_')
+    
+    # Validate required secrets are present
+    required_secrets = ['database_password', 'api_key', 'jwt_secret']
+    for secret in required_secrets:
+        if not config.get(secret):
+            raise ValueError(f"Required secret '{secret}' is missing")
+    
+    # Validate no secrets in debug mode
+    if config.debug and config.get('database_password'):
+        raise ValueError("Cannot run in debug mode with real credentials")
+    
+    config.freeze()
+    return config
+```
+
+#### Use .gitignore
+
+```gitignore
+# .gitignore
+# Never commit these files
+config.local.json
+config.production.json
+.env
+secrets.json
+*.secret.toml
+```
+
+#### Audit Configuration Files
+
+```python
+def audit_config_file(path):
+    """Check config file for potential secrets."""
+    import re
+    
+    with open(path, 'r') as f:
+        content = f.read()
+    
+    # Patterns that might indicate secrets
+    danger_patterns = [
+        r'password\s*[:=]',
+        r'secret\s*[:=]',
+        r'token\s*[:=]',
+        r'key\s*[:=]',
+        r'api_key\s*[:=]'
+    ]
+    
+    for pattern in danger_patterns:
+        if re.search(pattern, content, re.IGNORECASE):
+            print(f"WARNING: Potential secret in {path}: {pattern}")
+```
+
+### Production Checklist
+
+Before deploying with serialized configs:
+
+- ✅ Use values-only format for manually edited configs
+- ✅ Define validators in code, not in config files
+- ✅ Load configs in correct precedence order
+- ✅ Never commit secrets to JSON/TOML files
+- ✅ Use environment variables for secrets
+- ✅ Validate configuration after loading
+- ✅ Freeze configuration before use
+- ✅ Add .gitignore entries for secret config files
+- ✅ Use consistent environment variable naming
+- ✅ Document required environment variables
 
 ---
 
