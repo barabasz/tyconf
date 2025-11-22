@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tyconf"
-version = "1.1.0"
+version = "1.1.1"
 description = "TyConf - Type-safe Configuration Management for Python with Value Validation"
 readme = "README.md"
 authors = [

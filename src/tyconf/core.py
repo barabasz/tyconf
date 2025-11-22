@@ -450,6 +450,35 @@ class TyConf:
         """Return an iterator over (name, value) pairs."""
         return iter((name, self._values[name]) for name in self._properties.keys())
 
+    def try_set(self, name: str, value: Any) -> bool:
+        """
+        Try to set a property value safely without raising exceptions.
+
+        Attempts to set the property value. If the assignment fails due to
+        type mismatch, validation error, read-only restriction, or missing
+        property, the exception is caught and the method returns False.
+
+        Args:
+            name: Property name.
+            value: Value to set.
+
+        Returns:
+            True if value was set successfully, False otherwise.
+
+        Examples:
+            >>> config = TyConf(port=(int, 8080))
+            >>> config.try_set('port', 9000)
+            True
+            >>> config.try_set('port', 'invalid')
+            False
+        """
+        try:
+            # Using internal setter which performs all validations
+            self._set_property(name, value)
+            return True
+        except (TypeError, ValueError, AttributeError, KeyError):
+            return False
+
     def _set_property(self, name: str, value: Any) -> None:
         """
         Internal helper to set property value with validation.

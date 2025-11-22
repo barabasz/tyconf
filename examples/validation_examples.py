@@ -213,7 +213,7 @@ def custom_validator_example():
     def validate_port_range(value):
         """Validate port is in valid range and even."""
         if not (1024 <= value <= 65535):
-            raise ValueError(f"port must be between 1024 and 65535")
+            raise ValueError("port must be between 1024 and 65535")
         if value % 2 != 0:
             raise ValueError("port must be even number")
         return True
@@ -232,7 +232,7 @@ def custom_validator_example():
         print(f"   ❌ Error: Property 'password': {e}")
 
     config.password = "NewPassword123"
-    print(f"   ✓ Password updated")
+    print("   ✓ Password updated")
 
     print("\n2. Custom Port Validator:")
     print(f"   Port: {config.port}")

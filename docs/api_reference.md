@@ -117,6 +117,41 @@ Update multiple property values at once.
 config.update(host="0.0.0.0", port=3000, debug=True)
 ```
 
+##### try_set()
+
+```python
+try_set(name: str, value: Any) -> bool
+```
+
+Try to set a property value safely without raising exceptions.
+
+Attempts to set the property value. If the assignment fails due to type mismatch, validation error, read-only restriction, or missing property, the method simply returns False instead of raising an exception.
+
+**Parameters:**
+- `name`: Property name
+- `value`: Value to set
+
+**Returns:**
+- `True` if value was set successfully
+- `False` if any error occurred (TypeError, ValueError, AttributeError, KeyError)
+
+**Example:**
+
+```python
+config = TyConf(port=(int, 8080, range(1024, 65535)))
+
+# Successful update
+if config.try_set('port', 3000):
+    print("Port updated")
+
+# Failed update (invalid type) - no crash
+if not config.try_set('port', "invalid"):
+    print("Invalid port type")
+
+# Failed update (validation error) - no crash
+config.try_set('port', 80)  # Returns False
+```
+
 ##### copy()
 
 ```python
@@ -484,6 +519,29 @@ from tyconf.validators import range, length, regex, one_of, all_of
 ```
 
 ### Built-in Validators
+
+#### contains()
+
+```python
+contains(substring: str, case_sensitive: bool = True) -> Callable
+```
+
+Validate that a string contains the specified substring.
+
+**Parameters:**
+- `substring`: The text that must be present.
+- `case_sensitive`: If `False`, ignores case differences (default: `True`).
+
+**Example:**
+```python
+from tyconf import TyConf
+from tyconf.validators import contains
+
+config = TyConf(
+    api_url=(str, "https://api.dev", contains("https://")),
+    environment=(str, "PROD", contains("prod", case_sensitive=False))
+)
+```
 
 #### range()
 

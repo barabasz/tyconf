@@ -5,6 +5,12 @@ All notable changes to [TyConf](https://github.com/barabasz/tyconf) will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-11-22
+
+### Added
+- `try_set()` method to set a property value safely without raising exceptions
+- new string validators: `longer_than()`, `shorter_than()`, and `contains()`
+
 ## [1.1.0] - 2025-11-18
 
 ### Added
@@ -152,6 +158,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **1.1.1** (2025-11-20) - Added try_set() method
 - **1.1.0** (2025-11-18) - Added value validation with validators module
 - **1.0.2** (2025-11-18) - Code refactoring and improvements
 - **1.0.1** (2025-11-18) - Better error messages

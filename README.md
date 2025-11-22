@@ -1,6 +1,6 @@
 # TyConf
 
-**TyConf** ≡ **Ty**ped **Conf**ig - A type-safe configuration management library for Python with runtime validation.
+**TyConf** ≡ **Ty**ped **Conf**ig - a type-safe configuration management library for Python with runtime validation.
 
 ## What is TyConf?
 

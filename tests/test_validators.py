@@ -2,7 +2,7 @@
 
 import pytest
 from tyconf import TyConf
-from tyconf.validators import range, length, regex, one_of, all_of, any_of, not_in
+from tyconf.validators import range, length, regex, one_of, all_of, any_of, not_in, contains
 
 
 def test_range_validator():
@@ -358,3 +358,32 @@ def test_complex_validation_scenario():
 
     with pytest.raises(ValueError):
         config.environment = "test"
+
+
+def test_contains_validator():
+    """Test contains validator."""
+    config = TyConf(
+        path=(str, "/usr/local/bin", contains("local")),
+        email=(str, "admin@company.com", contains("@")),
+    )
+
+    # Success
+    config.path = "/opt/local/bin"
+    assert config.path == "/opt/local/bin"
+
+    # Failure
+    with pytest.raises(ValueError, match="must contain 'local'"):
+        config.path = "/usr/bin/python"
+
+
+def test_contains_validator_case_insensitive():
+    """Test contains validator with case_sensitive=False."""
+    config = TyConf(tags=(str, "Urgent-Task", contains("urgent", case_sensitive=False)))
+
+    # Success (mixed case)
+    config.tags = "URGENT-TASK"
+    config.tags = "very urgent"
+
+    # Failure
+    with pytest.raises(ValueError, match="must contain 'urgent'"):
+        config.tags = "regular-task"

@@ -915,3 +915,65 @@ def test_update_empty():
 
     # Value should be unchanged
     assert cfg.debug is False
+
+
+def test_try_set_success():
+    """Test successful try_set operation."""
+    cfg = TyConf(port=(int, 8080))
+
+    result = cfg.try_set("port", 9000)
+
+    assert result is True
+    assert cfg.port == 9000
+
+
+def test_try_set_type_error():
+    """Test try_set with invalid type."""
+    cfg = TyConf(port=(int, 8080))
+
+    result = cfg.try_set("port", "invalid")
+
+    assert result is False
+    assert cfg.port == 8080  # Value remains unchanged
+
+
+def test_try_set_validation_error():
+    """Test try_set with validation failure."""
+    # Assuming range validator from previous context or lambda
+    cfg = TyConf(percent=(int, 50, lambda x: 0 <= x <= 100))
+
+    result = cfg.try_set("percent", 150)
+
+    assert result is False
+    assert cfg.percent == 50
+
+
+def test_try_set_readonly():
+    """Test try_set on read-only property."""
+    cfg = TyConf(VERSION=(str, "1.0.0", True))
+
+    result = cfg.try_set("VERSION", "2.0.0")
+
+    assert result is False
+    assert cfg.VERSION == "1.0.0"
+
+
+def test_try_set_missing_property():
+    """Test try_set on non-existent property."""
+    cfg = TyConf()
+
+    result = cfg.try_set("missing", "value")
+
+    assert result is False
+    assert "missing" not in cfg
+
+
+def test_try_set_frozen():
+    """Test try_set on frozen configuration."""
+    cfg = TyConf(debug=(bool, True))
+    cfg.freeze()
+
+    result = cfg.try_set("debug", False)
+
+    assert result is False
+    assert cfg.debug is True

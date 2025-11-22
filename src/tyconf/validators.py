@@ -252,3 +252,30 @@ def not_in(*disallowed_values: Any) -> Callable:
         return True
 
     return validator
+
+
+def contains(substring: str, case_sensitive: bool = True) -> Callable:
+    """
+    Validate that a string contains a specific substring.
+
+    Args:
+        substring: The string that must be present.
+        case_sensitive: Whether matching should be case-sensitive.
+
+    Examples:
+        >>> config = TyConf(path=(str, "/var/log", contains("/log")))
+        >>> config = TyConf(mode=(str, "DEBUG", contains("debug", case_sensitive=False)))
+    """
+
+    def validator(value: str) -> bool:
+        val_to_check = value if case_sensitive else value.lower()
+        sub_to_check = substring if case_sensitive else substring.lower()
+
+        if sub_to_check not in val_to_check:
+            msg = f"must contain '{substring}'"
+            if not case_sensitive:
+                msg += " (case insensitive)"
+            raise ValueError(msg)
+        return True
+
+    return validator
