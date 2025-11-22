@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `try_set()` method to set a property value safely without raising exceptions
-- new string validators: `longer_than()`, `shorter_than()`, and `contains()`
+- new string validators: `min_length()`, `max_length()`, and `contains()`
 - new numeric validators: `positive()`, `negative()`, `divisible_by()`, `is_even()`, `is_odd()`
 - new path validators including `path_exists(),` `is_file()`, `is_directory()` and `file_extension()`
 
