@@ -5,6 +5,41 @@ All notable changes to [TyConf](https://github.com/barabasz/tyconf) will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-01-22
+
+### Breaking Changes
+- **Python 3.13+ Required** - Minimum Python version increased from 3.10 to 3.13
+  - Required for built-in `tomllib` support and improved type system features
+
+### Added
+- **JSON Serialization** - Export and import configurations to/from JSON format
+  - `to_json()` - Export configuration to JSON file or string
+  - `from_json()` - Load configuration from JSON file or string (class method)
+  - `load_json()` - Merge JSON data into existing configuration
+- **TOML Serialization** - Export and import configurations to/from TOML format
+  - `to_toml()` - Export configuration to TOML file or string (requires `tomli-w` package)
+  - `from_toml()` - Load configuration from TOML file or string (class method, built-in via `tomllib`)
+- **Environment Variables Support** - Load configurations from environment variables
+  - `from_env()` - Load configuration from environment variables with type conversion (class method)
+  - `load_env()` - Merge environment variables into existing configuration
+- **Dictionary Serialization** - Low-level dictionary export/import
+  - `to_dict()` - Export configuration to dictionary format
+  - `from_dict()` - Load configuration from dictionary (class method)
+- **Values-Only Export** - Option to export only values without metadata
+  - `values_only` parameter in `to_json()`, `to_toml()`, and `to_dict()` methods
+  - Useful for simpler configuration files and compatibility with other tools
+- **Optional TOML Dependency** - TOML write support via optional dependency
+  - Install with `pip install tyconf[toml]` to enable TOML export functionality
+  - TOML import is built-in (no extra dependency required)
+
+### Notes
+- **Validators Not Serializable** - Custom validator functions cannot be serialized to JSON/TOML
+  - When loading configurations with validators, provide validators separately using `add()` method
+  - Values-only export/import does not include validator information
+- **Type Conversion** - Environment variables are automatically converted to appropriate types
+  - Supports: `str`, `int`, `float`, `bool`, `list`, `dict`
+  - Boolean conversion: `"true"`, `"yes"`, `"1"` → `True`; `"false"`, `"no"`, `"0"` → `False`
+
 ## [1.1.2] - 2025-11-22
 
 ### Added

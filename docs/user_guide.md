@@ -13,8 +13,9 @@ Complete guide to using TyConf for type-safe configuration management.
 7. [Property Management](#property-management)
 8. [Dict-Like Interface](#dict-like-interface)
 9. [Iteration](#iteration)
-10. [Advanced Features](#advanced-features)
-11. [Common Mistakes](#common-mistakes)
+10. [Serialization and Deserialization](#serialization-and-deserialization)
+11. [Advanced Features](#advanced-features)
+12. [Common Mistakes](#common-mistakes)
 
 ---
 
@@ -36,6 +37,14 @@ Complete guide to using TyConf for type-safe configuration management.
 
 ```bash
 pip install tyconf
+```
+
+**Requirements:** Python 3.13+
+
+**Optional Dependencies:**
+```bash
+# For TOML export support (TOML import is built-in via tomllib)
+pip install tyconf[toml]
 ```
 
 ---
@@ -454,6 +463,301 @@ for name, value in config.items():
 ```python
 properties = config.list_properties()
 print(properties)  # ['host', 'port', 'debug']
+```
+
+---
+
+## Serialization and Deserialization
+
+TyConf provides comprehensive support for exporting and importing configurations in multiple formats: JSON, TOML, and environment variables.
+
+### JSON Serialization
+
+#### Export to JSON
+
+Export configurations to JSON format with full metadata or values only:
+
+```python
+from tyconf import TyConf
+
+config = TyConf(
+    host=(str, "localhost"),
+    port=(int, 8080),
+    debug=(bool, True)
+)
+
+# Export with full metadata (includes types, defaults, readonly flags)
+config.to_json('config.json')
+
+# Export values only (simpler format)
+config.to_json('values.json', values_only=True)
+```
+
+**Full metadata format:**
+```json
+{
+  "_tyconf_version": "1.2.0",
+  "properties": {
+    "host": {
+      "type": "str",
+      "value": "localhost",
+      "default": "localhost",
+      "readonly": false
+    },
+    "port": {
+      "type": "int",
+      "value": 8080,
+      "default": 8080,
+      "readonly": false
+    },
+    "debug": {
+      "type": "bool",
+      "value": true,
+      "default": true,
+      "readonly": false
+    }
+  }
+}
+```
+
+**Values-only format:**
+```json
+{
+  "host": "localhost",
+  "port": 8080,
+  "debug": true
+}
+```
+
+#### Import from JSON
+
+Load configurations from JSON files:
+
+```python
+# Load from full metadata format
+config = TyConf.from_json('config.json')
+
+# Access properties
+print(config.host)  # 'localhost'
+print(config.port)  # 8080
+```
+
+#### Merge JSON into Existing Config
+
+Update an existing configuration with values from JSON:
+
+```python
+config = TyConf(
+    host=(str, "localhost"),
+    port=(int, 8080),
+    debug=(bool, False)
+)
+
+# Merge values from JSON file (only updates existing properties)
+config.load_json('overrides.json')
+```
+
+### TOML Serialization
+
+#### Export to TOML
+
+Export configurations to TOML format:
+
+```python
+# Export to TOML (requires: pip install tyconf[toml])
+config.to_toml('config.toml')
+
+# Export values only
+config.to_toml('values.toml', values_only=True)
+```
+
+**Note:** TOML export requires the `tomli-w` package. Install with:
+```bash
+pip install tyconf[toml]
+```
+
+**Full metadata format:**
+```toml
+_tyconf_version = "1.2.0"
+
+[properties.host]
+type = "str"
+value = "localhost"
+default = "localhost"
+readonly = false
+
+[properties.port]
+type = "int"
+value = 8080
+default = 8080
+readonly = false
+```
+
+**Values-only format:**
+```toml
+host = "localhost"
+port = 8080
+debug = true
+```
+
+#### Import from TOML
+
+Load configurations from TOML files (built-in via `tomllib`):
+
+```python
+# Load from TOML (no extra dependency needed for import)
+config = TyConf.from_toml('config.toml')
+
+print(config.host)  # 'localhost'
+```
+
+### Environment Variables
+
+#### Load from Environment Variables
+
+Create configurations from environment variables with automatic type conversion:
+
+```python
+import os
+
+# Set environment variables
+os.environ['APP_HOST'] = 'production.example.com'
+os.environ['APP_PORT'] = '3000'
+os.environ['APP_DEBUG'] = 'false'
+
+# Load from environment with schema
+config = TyConf.from_env(
+    prefix='APP_',
+    schema={
+        'host': str,
+        'port': int,
+        'debug': bool
+    }
+)
+
+print(config.host)   # 'production.example.com'
+print(config.port)   # 3000 (converted to int)
+print(config.debug)  # False (converted to bool)
+```
+
+**Type Conversion Rules:**
+
+- **Boolean**: `"true"`, `"yes"`, `"1"` → `True`; `"false"`, `"no"`, `"0"` → `False` (case-insensitive)
+- **Integer**: Converted using `int()`
+- **Float**: Converted using `float()`
+- **String**: Used as-is
+- **List**: JSON format, e.g., `'["item1", "item2"]'`
+- **Dict**: JSON format, e.g., `'{"key": "value"}'`
+
+#### Merge Environment Variables
+
+Update existing configuration with environment variables:
+
+```python
+config = TyConf(
+    host=(str, "localhost"),
+    port=(int, 8080),
+    debug=(bool, False)
+)
+
+# Override with environment variables
+config.load_env(prefix='APP_')
+```
+
+### Dictionary Export/Import
+
+Low-level dictionary serialization:
+
+```python
+# Export to dictionary
+data = config.to_dict()
+print(data)
+# {
+#   "_tyconf_version": "1.2.0",
+#   "properties": {...}
+# }
+
+# Export values only
+values = config.to_dict(values_only=True)
+print(values)
+# {"host": "localhost", "port": 8080, "debug": true}
+
+# Load from dictionary
+config = TyConf.from_dict(data)
+```
+
+### Values-Only vs Full Metadata
+
+Choose the appropriate export format based on your use case:
+
+#### Full Metadata Format
+
+**Advantages:**
+- Preserves complete configuration structure
+- Includes type information for validation
+- Stores default values for reset functionality
+- Maintains readonly flags
+- Can fully reconstruct TyConf objects
+
+**Use when:**
+- Saving complete application state
+- Need to restore configuration exactly
+- Want type validation on reload
+- Need to preserve readonly properties
+
+#### Values-Only Format
+
+**Advantages:**
+- Simpler, more readable format
+- Compatible with other tools
+- Smaller file size
+- Easy to edit manually
+- Standard JSON/TOML format
+
+**Use when:**
+- Sharing configs with non-TyConf applications
+- Manual editing is required
+- File size matters
+- Integration with external systems
+- Simple override files
+
+### Validator Limitations
+
+**Important:** Custom validator functions cannot be serialized to JSON/TOML.
+
+```python
+from tyconf.validators import range
+
+config = TyConf(
+    port=(int, 8080, range(1024, 65535))
+)
+
+# Export works, but validator is not saved
+config.to_json('config.json')
+
+# When loading, provide validators separately
+loaded = TyConf.from_json('config.json')
+# Validator is lost - need to re-add it
+loaded.remove('port')
+loaded.add('port', int, 8080, validator=range(1024, 65535))
+```
+
+**Workaround:** Use values-only export and define validators in code:
+
+```python
+# Export values only
+config.to_json('values.json', values_only=True)
+
+# Define validators in application code
+def create_config():
+    config = TyConf.from_json('values.json')
+    
+    # Re-add validators if needed
+    port_value = config.port
+    config.remove('port')
+    config.add('port', int, port_value, validator=range(1024, 65535))
+    
+    return config
 ```
 
 ---

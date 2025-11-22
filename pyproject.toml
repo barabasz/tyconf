@@ -4,23 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tyconf"
-version = "1.1.2"
-description = "TyConf - Type-safe Configuration Management for Python with Value Validation"
+version = "1.2.0"
+description = "TyConf - Type-safe Configuration Management for Python with Serialization Support"
 readme = "README.md"
 authors = [
     { name = "barabasz", email = "tyconf@anba.ovh" }
 ]
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities",
@@ -36,12 +33,16 @@ Issues = "https://github.com/barabasz/tyconf/issues"
 Changelog = "https://github.com/barabasz/tyconf/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
+toml = [
+    "tomli-w>=1.0.0",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "black>=23.0.0",
     "flake8>=6.0.0",
     "mypy>=1.0.0",
+    "tomli-w>=1.0.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -52,7 +53,7 @@ tyconf = ["py.typed"]
 
 [tool.black]
 line-length = 100
-target-version = ['py310']
+target-version = ['py313']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -69,7 +70,7 @@ extend-exclude = '''
 '''
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
