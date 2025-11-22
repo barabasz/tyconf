@@ -478,6 +478,7 @@ from tyconf import TyConf
 
 def load_production_config():
     """Load configuration with proper precedence."""
+    from tyconf.validators import range, one_of
     
     # 1. Start with defaults in code
     config = TyConf(
