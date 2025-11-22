@@ -4,29 +4,51 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tyconf"
-version = "1.1.2"
-description = "TyConf - Type-safe Configuration Management for Python with Value Validation"
+version = "1.2.0"
+description = "TyConf - Modern Type-safe Configuration for Python 3.13+"
 readme = "README.md"
 authors = [
     { name = "barabasz", email = "tyconf@anba.ovh" }
 ]
-license = "MIT"
-license-files = ["LICENSE"]
-requires-python = ">=3.10"
+license = { text = "MIT" }
+requires-python = ">=3.13"  # Modern Python only
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities",
     "Typing :: Typed",
 ]
-keywords = ["configuration", "config", "settings", "typed", "validation", "type-safe", "validators"]
+keywords = [
+    "configuration",
+    "config",
+    "settings",
+    "typed",
+    "validation",
+    "type-safe",
+    "serialization",
+    "json",
+    "toml"
+]
+
+# No runtime dependencies!
+dependencies = []
+
+[project.optional-dependencies]
+# Optional TOML write support
+toml = ["tomli-w>=1.0.0"]
+
+# Development dependencies
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",  # Modern linter (faster than flake8)
+    "mypy>=1.8.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/barabasz/tyconf"
@@ -35,73 +57,22 @@ Repository = "https://github.com/barabasz/tyconf"
 Issues = "https://github.com/barabasz/tyconf/issues"
 Changelog = "https://github.com/barabasz/tyconf/blob/main/CHANGELOG.md"
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "black>=23.0.0",
-    "flake8>=6.0.0",
-    "mypy>=1.0.0",
-]
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-tyconf = ["py.typed"]
-
 [tool.black]
 line-length = 100
-target-version = ['py310']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+target-version = ['py313']
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.13"
+strict = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-strict_equality = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "-v",
-    "--strict-markers",
-    "--tb=short",
-]
-
-[tool.coverage.run]
-source = ["src/tyconf"]
-omit = ["*/tests/*"]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-]
+addopts = ["-v", "--strict-markers", "--tb=short"]
