@@ -10,6 +10,7 @@ def basic_validators_example():
     print("BASIC VALIDATORS")
     print("=" * 60)
 
+
     # Lambda validators - simple and quick
     config = TyConf(
         percentage=(int, 50, lambda x: 0 <= x <= 100),
@@ -26,6 +27,33 @@ def basic_validators_example():
     except ValueError as e:
         print(f"   ❌ Error: {e}")
 
+
+    # Contains validator
+    url_config = TyConf(
+        api_url=(str, "https://api.example.com", contains("https://")),
+        log_path=(str, "/var/log/app.log", contains("/log"))
+    )
+
+    print("\n4. Contains Validator:")
+    print(f"   API URL: {url_config.api_url}")
+    url_config.api_url = "https://secure.api.com"
+    print(f"   Updated to: {url_config.api_url}")
+
+    try:
+        url_config.api_url = "http://insecure.com"
+    except ValueError as e:
+        print(f"   ❌ Error: Property 'api_url': {e}")
+
+    print(f"\n   Log path: {url_config.log_path}")
+    url_config.log_path = "/var/log/application.log"
+    print(f"   Updated to: {url_config.log_path}")
+
+    try:
+        url_config.log_path = "/tmp/app.log"
+    except ValueError as e:
+        print(f"   ❌ Error: Property 'log_path': {e}")
+
+
     # Range validator
     port_config = TyConf(port=(int, 8080, range(1024, 65535)))
 
@@ -38,6 +66,7 @@ def basic_validators_example():
         port_config.port = 80
     except ValueError as e:
         print(f"   ❌ Error: Property 'port': {e}")
+
 
     # Length validator
     user_config = TyConf(username=(str, "admin", length(min_len=3, max_len=20)))
