@@ -5,7 +5,10 @@ Provides JSON import/export with full metadata support.
 """
 
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..core import TyConf
 
 type JsonDict = dict[str, Any]
 

@@ -6,11 +6,13 @@ Write support: Requires tomli-w (optional dependency)
 """
 
 import tomllib
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..core import TyConf
 
 try:
     import tomli_w
-
     HAS_TOML_WRITE = True
 except ImportError:
     HAS_TOML_WRITE = False

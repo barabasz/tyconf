@@ -1,11 +1,11 @@
 """Tests for TyConf serialization functionality."""
 
-import pytest
 import json
 import os
-from pathlib import Path
+
+import pytest
+
 from tyconf import TyConf
-from tyconf.validators import range
 
 # Handle optional tomli_w dependency
 try:
@@ -13,6 +13,7 @@ try:
     HAS_TOML_WRITE = True
 except ImportError:
     HAS_TOML_WRITE = False
+    tomli_w = None  # Define for later use
 
 
 # ============================================================================
@@ -183,15 +184,11 @@ host = "localhost"
 port = 8080
 debug = true
 """
-    
-    schema = {
-        'host': (str, ""),
-        'port': (int, 0),
-        'debug': (bool, False)
-    }
-    
+
+    schema = {"host": (str, ""), "port": (int, 0), "debug": (bool, False)}
+
     config = TyConf.from_toml(toml_data, schema=schema)
-    
+
     assert config.host == "localhost"
     assert config.port == 8080
     assert config.debug is True
@@ -201,20 +198,18 @@ def test_from_toml_file(tmp_path):
     """Test from_toml with TOML file (built-in, no dependencies)."""
     # Create TOML file
     toml_file = tmp_path / "config.toml"
-    toml_file.write_text("""
+    toml_file.write_text(
+        """
 database = "app.db"
 timeout = 30
 retry = true
-""")
-    
-    schema = {
-        'database': (str, ""),
-        'timeout': (int, 0),
-        'retry': (bool, False)
-    }
-    
+"""
+    )
+
+    schema = {"database": (str, ""), "timeout": (int, 0), "retry": (bool, False)}
+
     config = TyConf.from_toml(str(toml_file), schema=schema)
-    
+
     assert config.database == "app.db"
     assert config.timeout == 30
     assert config.retry is True
@@ -223,22 +218,24 @@ retry = true
 def test_from_toml_with_values_only_format(tmp_path):
     """Test from_toml with simple values-only TOML format."""
     toml_file = tmp_path / "simple.toml"
-    toml_file.write_text("""
+    toml_file.write_text(
+        """
 name = "MyApp"
 version = "1.0.0"
 enabled = true
 workers = 4
-""")
-    
+"""
+    )
+
     schema = {
-        'name': (str, ""),
-        'version': (str, "0.0.0"),
-        'enabled': (bool, False),
-        'workers': (int, 1)
+        "name": (str, ""),
+        "version": (str, "0.0.0"),
+        "enabled": (bool, False),
+        "workers": (int, 1),
     }
-    
+
     config = TyConf.from_toml(str(toml_file), schema=schema)
-    
+
     assert config.name == "MyApp"
     assert config.version == "1.0.0"
     assert config.enabled is True
@@ -248,9 +245,10 @@ workers = 4
 def test_to_toml_without_tomli_w():
     """Test that to_toml raises helpful error without tomli-w."""
     config = TyConf(host=(str, "localhost"), port=(int, 8080))
-    
+
     try:
         import tomli_w
+
         # If tomli-w IS installed, test should work
         result = config.to_toml(values_only=True)
         assert isinstance(result, str)
@@ -264,43 +262,31 @@ def test_to_toml_without_tomli_w():
 @pytest.mark.skipif(not HAS_TOML_WRITE, reason="tomli-w not installed")
 def test_to_toml_values_only_with_tomli_w():
     """Test to_toml values_only format (requires tomli-w)."""
-    config = TyConf(
-        host=(str, "localhost"),
-        port=(int, 8080),
-        debug=(bool, True)
-    )
-    
+    config = TyConf(host=(str, "localhost"), port=(int, 8080), debug=(bool, True))
+
     toml_str = config.to_toml(values_only=True)
-    
+
     assert isinstance(toml_str, str)
     assert 'host = "localhost"' in toml_str
-    assert 'port = 8080' in toml_str
-    assert 'debug = true' in toml_str
+    assert "port = 8080" in toml_str
+    assert "debug = true" in toml_str
 
 
 @pytest.mark.skipif(not HAS_TOML_WRITE, reason="tomli-w not installed")
 def test_roundtrip_toml_with_tomli_w(tmp_path):
     """Test TOML roundtrip (requires tomli-w)."""
-    original = TyConf(
-        database=(str, "app.db"),
-        timeout=(int, 30),
-        retry=(bool, True)
-    )
-    
+    original = TyConf(database=(str, "app.db"), timeout=(int, 30), retry=(bool, True))
+
     # Export to file
     file_path = tmp_path / "config.toml"
     original.to_toml(str(file_path), values_only=True)
-    
+
     assert file_path.exists()
-    
+
     # Import from file
-    schema = {
-        'database': (str, ""),
-        'timeout': (int, 0),
-        'retry': (bool, False)
-    }
+    schema = {"database": (str, ""), "timeout": (int, 0), "retry": (bool, False)}
     loaded = TyConf.from_toml(str(file_path), schema=schema)
-    
+
     assert loaded.database == "app.db"
     assert loaded.timeout == 30
     assert loaded.retry is True
@@ -410,16 +396,14 @@ def test_load_env_merge():
 
 def test_from_env_case_insensitive():
     """Test from_env case insensitive matching."""
-    os.environ['app_host'] = 'localhost'  # lowercase
-    
+    os.environ["app_host"] = "localhost"  # lowercase
+
     try:
-        config = TyConf.from_env('APP_', schema={
-            'host': (str, '')
-        })
-        
-        assert config.host == 'localhost'
+        config = TyConf.from_env("APP_", schema={"host": (str, "")})
+
+        assert config.host == "localhost"
     finally:
-        del os.environ['app_host']
+        del os.environ["app_host"]
 
 
 # ============================================================================

@@ -11,7 +11,7 @@ authors = [
     { name = "barabasz", email = "tyconf@anba.ovh" }
 ]
 license = { text = "MIT" }
-requires-python = ">=3.13"  # Modern Python only
+requires-python = ">=3.13"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -34,19 +34,16 @@ keywords = [
     "toml"
 ]
 
-# No runtime dependencies!
 dependencies = []
 
 [project.optional-dependencies]
-# Optional TOML write support
 toml = ["tomli-w>=1.0.0"]
 
-# Development dependencies
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
     "black>=24.0.0",
-    "ruff>=0.1.0",  # Modern linter (faster than flake8)
+    "ruff>=0.1.0",
     "mypy>=1.8.0",
 ]
 
@@ -64,6 +61,43 @@ target-version = ['py313']
 [tool.ruff]
 target-version = "py313"
 line-length = 100
+
+# Exclude directories
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+# Enable these rule sets (moved from top-level)
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+
+# Ignore these rules (moved from top-level)
+ignore = [
+    "E501",  # line too long (handled by black)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint.isort]
+known-first-party = ["tyconf"]
 
 [tool.mypy]
 python_version = "3.13"

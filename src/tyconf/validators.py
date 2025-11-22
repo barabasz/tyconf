@@ -5,10 +5,10 @@ This module provides ready-to-use validators for common validation scenarios.
 """
 
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 from urllib.parse import urlparse
-
 
 # ============================================================================
 # COMBINATOR VALIDATORS - Combine multiple validators
@@ -170,7 +170,7 @@ def not_in(*disallowed_values: Any) -> Callable:
 # ============================================================================
 
 
-def length(min_len: Optional[int] = None, max_len: Optional[int] = None) -> Callable:
+def length(min_len: int | None = None, max_len: int | None = None) -> Callable:
     """
     Validate that a string or collection has length within the specified range.
 
@@ -582,7 +582,7 @@ def no_whitespace() -> Callable:
 # ============================================================================
 
 
-def range(min_val: Optional[int | float] = None, max_val: Optional[int | float] = None) -> Callable:
+def range(min_val: int | float | None = None, max_val: int | float | None = None) -> Callable:
     """
     Validate that a numeric value is within the specified range.
 
@@ -1053,7 +1053,7 @@ def keys_in(*allowed_keys: str) -> Callable:
     """
 
     def validator(value: dict) -> bool:
-        invalid = [key for key in value.keys() if key not in allowed_keys]
+        invalid = [key for key in value if key not in allowed_keys]
         if invalid:
             raise ValueError(f"invalid keys: {invalid}")
         return True

@@ -5,8 +5,9 @@ This module provides the core TyConf class and PropertyDescriptor for managing
 configuration with runtime type validation and value validators.
 """
 
-from typing import Any, Union, Optional, Callable, get_args, get_origin
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any, Union, get_args, get_origin
 
 
 @dataclass
@@ -17,7 +18,7 @@ class PropertyDescriptor:
     prop_type: type
     default_value: Any
     readonly: bool = False
-    validator: Optional[Callable[[Any], Any]] = None
+    validator: Callable[[Any], Any] | None = None
 
 
 class TyConf:
@@ -138,7 +139,7 @@ class TyConf:
         prop_type: type,
         default_value: Any,
         readonly: bool = False,
-        validator: Optional[Callable] = None,
+        validator: Callable | None = None,
     ) -> None:
         """
         Add a new property to the TyConf.
@@ -727,6 +728,7 @@ class TyConf:
 
         if include_metadata:
             from . import __version__
+
             result["_tyconf_version"] = __version__
 
         result["properties"] = {
@@ -795,9 +797,7 @@ class TyConf:
         return config
 
     @classmethod
-    def _from_dict_values_only(
-        cls, data: dict[str, Any], schema: dict[str, tuple]
-    ) -> "TyConf":
+    def _from_dict_values_only(cls, data: dict[str, Any], schema: dict[str, tuple]) -> "TyConf":
         """Load TyConf from values-only format with schema."""
         config = cls()
 
@@ -869,9 +869,7 @@ class TyConf:
         return json_data
 
     @classmethod
-    def from_json(
-        cls, source: str, /, *, schema: dict[str, tuple] | None = None
-    ) -> "TyConf":
+    def from_json(cls, source: str, /, *, schema: dict[str, tuple] | None = None) -> "TyConf":
         """
         Load configuration from JSON file or string.
 
@@ -887,13 +885,14 @@ class TyConf:
             >>> config = TyConf.from_json('{"host": "localhost"}', schema={...})
         """
         from pathlib import Path
+
         from .serialization.json import JSONSerializer
 
         serializer = JSONSerializer()
 
         # Check if source is a file path
         if Path(source).is_file():
-            with open(source, "r", encoding="utf-8") as f:
+            with open(source, encoding="utf-8") as f:
                 json_str = f.read()
         else:
             json_str = source
@@ -901,9 +900,7 @@ class TyConf:
         data = serializer.deserialize(json_str)
         return cls.from_dict(data, schema=schema)
 
-    def load_json(
-        self, source: str, /, *, update_existing: bool = True
-    ) -> None:
+    def load_json(self, source: str, /, *, update_existing: bool = True) -> None:
         """
         Load JSON and merge into existing configuration.
 
@@ -916,6 +913,7 @@ class TyConf:
             >>> config.load_json('overrides.json')
         """
         from pathlib import Path
+
         from .serialization.json import JSONSerializer
 
         serializer = JSONSerializer()
@@ -924,7 +922,7 @@ class TyConf:
         path = Path(source)
         if path.is_file():
             # File exists - read from file
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 json_str = f.read()
         elif path.exists():
             # Path exists but not a file
@@ -940,9 +938,7 @@ class TyConf:
 
         # Handle both formats
         if "_tyconf_version" in data and "properties" in data:
-            values = {
-                name: prop["value"] for name, prop in data["properties"].items()
-            }
+            values = {name: prop["value"] for name, prop in data["properties"].items()}
         else:
             values = data
 
@@ -954,9 +950,7 @@ class TyConf:
         else:
             self.update(**values)
 
-    def to_toml(
-        self, file_path: str | None = None, /, *, values_only: bool = False
-    ) -> str | None:
+    def to_toml(self, file_path: str | None = None, /, *, values_only: bool = False) -> str | None:
         """
         Serialize configuration to TOML.
 
@@ -986,9 +980,7 @@ class TyConf:
         return toml_data
 
     @classmethod
-    def from_toml(
-        cls, source: str, /, *, schema: dict[str, tuple] | None = None
-    ) -> "TyConf":
+    def from_toml(cls, source: str, /, *, schema: dict[str, tuple] | None = None) -> "TyConf":
         """
         Load configuration from TOML file or string.
 
@@ -1005,6 +997,7 @@ class TyConf:
             >>> config = TyConf.from_toml('config.toml')
         """
         from pathlib import Path
+
         from .serialization.toml import TOMLSerializer
 
         serializer = TOMLSerializer()
@@ -1014,17 +1007,13 @@ class TyConf:
             with open(source, "rb") as f:
                 toml_bytes = f.read()
         else:
-            toml_bytes = (
-                source.encode("utf-8") if isinstance(source, str) else source
-            )
+            toml_bytes = source.encode("utf-8") if isinstance(source, str) else source
 
         data = serializer.deserialize(toml_bytes)
         return cls.from_dict(data, schema=schema)
 
     @classmethod
-    def from_env(
-        cls, prefix: str = "", /, *, schema: dict[str, tuple]
-    ) -> "TyConf":
+    def from_env(cls, prefix: str = "", /, *, schema: dict[str, tuple]) -> "TyConf":
         """
         Create TyConf from environment variables.
 
@@ -1072,8 +1061,7 @@ class TyConf:
 
         # Build schema from existing properties
         schema = {
-            name: (prop.prop_type, prop.default_value)
-            for name, prop in self._properties.items()
+            name: (prop.prop_type, prop.default_value) for name, prop in self._properties.items()
         }
 
         loader = ENVLoader()

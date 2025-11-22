@@ -1,63 +1,63 @@
 """Tests for TyConf validators."""
 
 import pytest
+
 from tyconf import TyConf
 from tyconf.validators import (
     # Combinators
     all_of,
     any_of,
-    # Choice validators
-    one_of,
-    not_in,
-    # String validators - Length
-    length,
-    min_length,
-    max_length,
+    between,
     # String validators - Content
     contains,
-    starts_with,
+    # Numeric validators - Divisibility
+    divisible_by,
     ends_with,
-    regex,
+    file_extension,
+    has_items,
+    # Dictionary validators
+    has_keys,
+    is_absolute_path,
     # String validators - Character type
     is_alpha,
     is_alphanumeric,
-    is_numeric,
-    is_lowercase,
-    is_uppercase,
-    no_whitespace,
-    # Numeric validators - Range
-    range,
-    between,
-    # Numeric validators - Sign
-    positive,
-    negative,
-    non_negative,
-    non_positive,
-    # Numeric validators - Divisibility
-    divisible_by,
+    is_directory,
     is_even,
+    is_file,
+    is_lowercase,
+    is_numeric,
     is_odd,
+    is_relative_path,
+    is_uppercase,
+    keys_in,
+    # String validators - Length
+    length,
+    max_items,
+    max_length,
+    min_items,
+    min_length,
+    negative,
+    no_whitespace,
     # Collection validators
     non_empty,
+    non_negative,
+    non_positive,
+    not_in,
+    # Choice validators
+    one_of,
+    # Path validators
+    path_exists,
+    # Numeric validators - Sign
+    positive,
+    # Numeric validators - Range
+    range,
+    regex,
+    starts_with,
     unique_items,
-    has_items,
-    min_items,
-    max_items,
-    # Dictionary validators
-    has_keys,
-    keys_in,
     # URL validators
     url_scheme,
     valid_url,
-    # Path validators
-    path_exists,
-    is_file,
-    is_directory,
-    is_absolute_path,
-    is_relative_path,
-    file_extension,
 )
-
 
 # ============================================================================
 # COMBINATOR VALIDATORS

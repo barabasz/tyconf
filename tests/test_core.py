@@ -1,7 +1,9 @@
 """Tests for TyConf core functionality."""
 
-import pytest
 from typing import Optional, Union
+
+import pytest
+
 from tyconf import TyConf
 
 
@@ -553,7 +555,7 @@ def test_repr_representation():
     cfg = TyConf(a=(int, 1), b=(int, 2))
 
     r = repr(cfg)
-    assert "<TyConf with 2 properties>" == r
+    assert r == "<TyConf with 2 properties>"
 
 
 def test_repr_representation_empty():

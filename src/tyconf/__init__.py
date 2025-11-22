@@ -5,8 +5,8 @@ TyConf (Typed Config) is a modern Python library for managing application
 configuration with runtime type validation and an intuitive API.
 """
 
-from .core import TyConf, PropertyDescriptor
 from . import validators
+from .core import PropertyDescriptor, TyConf
 
 __all__ = ["TyConf", "PropertyDescriptor", "validators"]
 __version__ = "1.2.0"
