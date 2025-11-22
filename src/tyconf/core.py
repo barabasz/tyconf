@@ -7,6 +7,7 @@ configuration with runtime type validation and value validators.
 Requires Python 3.13+ for modern type syntax and built-in features.
 """
 
+import types
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Union, get_args, get_origin
@@ -585,8 +586,16 @@ class TyConf:
 
         serializer = JSONSerializer()
 
-        # Check if source is a file path
-        json_str = Path(source).read_text(encoding="utf-8") if Path(source).is_file() else source
+        # Check if source is a file path safely (avoid OS Error on long strings)
+        is_file_path = False
+        try:
+            # Limit check to reasonable path length to avoid "File name too long" on Linux
+            if len(source) < 255 and Path(source).is_file():
+                is_file_path = True
+        except OSError:
+            pass
+
+        json_str = Path(source).read_text(encoding="utf-8") if is_file_path else source
 
         data = serializer.deserialize(json_str)
         return cls.from_dict(data, schema=schema)
@@ -610,12 +619,20 @@ class TyConf:
         serializer = JSONSerializer()
         path = Path(source)
 
-        # Determine if source is file or string
-        if path.is_file():
+        # Determine if source is file or string safely
+        is_file = False
+        try:
+            if len(source) < 255 and path.is_file():
+                is_file = True
+        except OSError:
+            pass
+
+        if is_file:
             json_str = path.read_text(encoding="utf-8")
-        elif path.exists():
+        elif len(source) < 255 and path.exists():
             raise ValueError(f"{source} is not a file")
         elif "/" in source or "\\" in source or source.endswith(".json"):
+            # Heuristic: if it looks like a path but wasn't found
             raise FileNotFoundError(f"File not found: {source}")
         else:
             json_str = source
@@ -694,10 +711,17 @@ class TyConf:
         serializer = TOMLSerializer()
         path = Path(source)
 
-        # Check if source is a file path
+        # Check if source is a file path safely
+        is_file_path = False
+        try:
+            if len(source) < 255 and path.is_file():
+                is_file_path = True
+        except OSError:
+            pass
+
         toml_bytes = (
             path.read_bytes()
-            if path.is_file()
+            if is_file_path
             else source.encode("utf-8") if isinstance(source, str) else source
         )
 
@@ -864,7 +888,7 @@ class TyConf:
         """
         origin = get_origin(expected_type)
 
-        if origin is Union:
+        if origin is Union or origin is types.UnionType:
             # Handle Optional[T] (Union[T, None]) and Union types
             args = get_args(expected_type)
 
