@@ -5,11 +5,13 @@ All notable changes to [TyConf](https://github.com/barabasz/tyconf) will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.1] - 2025-11-22
+## [1.1.2] - 2025-11-22
 
 ### Added
 - `try_set()` method to set a property value safely without raising exceptions
 - new string validators: `longer_than()`, `shorter_than()`, and `contains()`
+- new numeric validators: `positive()`, `negative()`, `divisible_by()`, `is_even()`, `is_odd()`
+- new path validators including `path_exists(),` `is_file()`, `is_directory()` and `file_extension()`
 
 ## [1.1.0] - 2025-11-18
 

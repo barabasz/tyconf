@@ -1,7 +1,7 @@
 """Examples demonstrating TyConf validators."""
 
 from tyconf import TyConf
-from tyconf.validators import range, length, regex, one_of, all_of, any_of, not_in
+from tyconf.validators import range, length, regex, one_of, all_of, any_of, not_in, contains
 
 
 def basic_validators_example():
@@ -9,7 +9,6 @@ def basic_validators_example():
     print("=" * 60)
     print("BASIC VALIDATORS")
     print("=" * 60)
-
 
     # Lambda validators - simple and quick
     config = TyConf(
@@ -27,11 +26,10 @@ def basic_validators_example():
     except ValueError as e:
         print(f"   ❌ Error: {e}")
 
-
     # Contains validator
     url_config = TyConf(
         api_url=(str, "https://api.example.com", contains("https://")),
-        log_path=(str, "/var/log/app.log", contains("/log"))
+        log_path=(str, "/var/log/app.log", contains("/log")),
     )
 
     print("\n4. Contains Validator:")
@@ -53,7 +51,6 @@ def basic_validators_example():
     except ValueError as e:
         print(f"   ❌ Error: Property 'log_path': {e}")
 
-
     # Range validator
     port_config = TyConf(port=(int, 8080, range(1024, 65535)))
 
@@ -66,7 +63,6 @@ def basic_validators_example():
         port_config.port = 80
     except ValueError as e:
         print(f"   ❌ Error: Property 'port': {e}")
-
 
     # Length validator
     user_config = TyConf(username=(str, "admin", length(min_len=3, max_len=20)))
