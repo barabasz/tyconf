@@ -696,6 +696,394 @@ class TyConf:
             return f"'{item}'"
         return str(item)
 
+    # ========================================================================
+    # SERIALIZATION METHODS (Python 3.13+)
+    # ========================================================================
+
+    def to_dict(
+        self, /, *, values_only: bool = False, include_metadata: bool = True
+    ) -> dict[str, Any]:
+        """
+        Export configuration to dictionary.
+
+        Args:
+            values_only: Export only property values (keyword-only)
+            include_metadata: Include TyConf version info (keyword-only)
+
+        Returns:
+            Dictionary representation
+
+        Examples:
+            >>> config = TyConf(host=(str, "localhost"), port=(int, 8080))
+            >>> config.to_dict(values_only=True)
+            {'host': 'localhost', 'port': 8080}
+            >>> config.to_dict()  # Full metadata
+            {'_tyconf_version': '1.2.0', 'properties': {...}}
+        """
+        if values_only:
+            return dict(self._values)
+
+        result: dict[str, Any] = {}
+
+        if include_metadata:
+            from . import __version__
+            result["_tyconf_version"] = __version__
+
+        result["properties"] = {
+            name: {
+                "type": prop.prop_type.__name__,
+                "value": self._values[name],
+                "default": prop.default_value,
+                "readonly": prop.readonly,
+            }
+            for name, prop in self._properties.items()
+        }
+
+        return result
+
+    @classmethod
+    def from_dict(
+        cls, data: dict[str, Any], /, *, schema: dict[str, tuple] | None = None
+    ) -> "TyConf":
+        """
+        Create TyConf from dictionary.
+
+        Args:
+            data: Dictionary with configuration data (positional-only)
+            schema: Optional schema for validation (keyword-only)
+
+        Returns:
+            New TyConf instance
+
+        Examples:
+            >>> data = {'host': 'localhost', 'port': 8080}
+            >>> schema = {'host': (str, ""), 'port': (int, 0)}
+            >>> config = TyConf.from_dict(data, schema=schema)
+        """
+        # Detect format
+        if "_tyconf_version" in data and "properties" in data:
+            return cls._from_dict_with_metadata(data)
+
+        if schema is None:
+            raise ValueError(
+                "Schema required when loading values-only format.\n"
+                "Provide schema mapping: {'prop_name': (type, default)}"
+            )
+
+        return cls._from_dict_values_only(data, schema)
+
+    @classmethod
+    def _from_dict_with_metadata(cls, data: dict[str, Any]) -> "TyConf":
+        """Load TyConf from full metadata format."""
+        config = cls()
+
+        for name, prop_info in data["properties"].items():
+            prop_type_name = prop_info["type"]
+            # Map type name to actual type
+            prop_type = cls._resolve_type(prop_type_name)
+
+            config.add(
+                name=name,
+                prop_type=prop_type,
+                default_value=prop_info["default"],
+                readonly=prop_info.get("readonly", False),
+            )
+
+            # Set current value
+            config._values[name] = prop_info["value"]
+
+        return config
+
+    @classmethod
+    def _from_dict_values_only(
+        cls, data: dict[str, Any], schema: dict[str, tuple]
+    ) -> "TyConf":
+        """Load TyConf from values-only format with schema."""
+        config = cls()
+
+        for name, (prop_type, default_value) in schema.items():
+            # Use value from data if present, otherwise use default
+            value = data.get(name, default_value)
+
+            config.add(name=name, prop_type=prop_type, default_value=default_value)
+
+            # Set actual value (may differ from default)
+            if name in data:
+                config._values[name] = value
+
+        return config
+
+    @staticmethod
+    def _resolve_type(type_name: str) -> type:
+        """Resolve type name string to actual type."""
+        type_mapping = {
+            "str": str,
+            "int": int,
+            "float": float,
+            "bool": bool,
+            "list": list,
+            "dict": dict,
+            "tuple": tuple,
+        }
+
+        if type_name in type_mapping:
+            return type_mapping[type_name]
+
+        # Fallback to globals (for custom types)
+        return eval(type_name)
+
+    def to_json(
+        self,
+        file_path: str | None = None,
+        /,
+        *,
+        values_only: bool = False,
+        indent: int | None = 2,
+    ) -> str | None:
+        """
+        Serialize configuration to JSON.
+
+        Args:
+            file_path: Optional file path to save (positional-only)
+            values_only: Export only values (keyword-only)
+            indent: JSON indentation (keyword-only)
+
+        Returns:
+            JSON string if file_path is None, otherwise None
+
+        Examples:
+            >>> config.to_json('config.json')
+            >>> json_str = config.to_json()
+            >>> config.to_json('values.json', values_only=True)
+        """
+        from .serialization.json import JSONSerializer
+
+        serializer = JSONSerializer()
+        json_data = serializer.serialize(self, values_only=values_only, indent=indent)
+
+        if file_path:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(json_data)
+            return None
+
+        return json_data
+
+    @classmethod
+    def from_json(
+        cls, source: str, /, *, schema: dict[str, tuple] | None = None
+    ) -> "TyConf":
+        """
+        Load configuration from JSON file or string.
+
+        Args:
+            source: File path or JSON string (positional-only)
+            schema: Optional schema for validation (keyword-only)
+
+        Returns:
+            New TyConf instance
+
+        Examples:
+            >>> config = TyConf.from_json('config.json')
+            >>> config = TyConf.from_json('{"host": "localhost"}', schema={...})
+        """
+        from pathlib import Path
+        from .serialization.json import JSONSerializer
+
+        serializer = JSONSerializer()
+
+        # Check if source is a file path
+        if Path(source).is_file():
+            with open(source, "r", encoding="utf-8") as f:
+                json_str = f.read()
+        else:
+            json_str = source
+
+        data = serializer.deserialize(json_str)
+        return cls.from_dict(data, schema=schema)
+
+    def load_json(
+        self, source: str, /, *, update_existing: bool = True
+    ) -> None:
+        """
+        Load JSON and merge into existing configuration.
+
+        Args:
+            source: File path or JSON string
+            update_existing: If True, update existing properties only
+
+        Examples:
+            >>> config = TyConf(host=(str, "localhost"))
+            >>> config.load_json('overrides.json')
+        """
+        from pathlib import Path
+        from .serialization.json import JSONSerializer
+
+        serializer = JSONSerializer()
+
+        # Read JSON
+        path = Path(source)
+        if path.is_file():
+            # File exists - read from file
+            with open(path, "r", encoding="utf-8") as f:
+                json_str = f.read()
+        elif path.exists():
+            # Path exists but not a file
+            raise ValueError(f"{source} is not a file")
+        elif "/" in source or "\\" in source or source.endswith(".json"):
+            # Looks like a file path but doesn't exist
+            raise FileNotFoundError(f"File not found: {source}")
+        else:
+            # Treat as JSON string
+            json_str = source
+
+        data = serializer.deserialize(json_str)
+
+        # Handle both formats
+        if "_tyconf_version" in data and "properties" in data:
+            values = {
+                name: prop["value"] for name, prop in data["properties"].items()
+            }
+        else:
+            values = data
+
+        # Update existing properties
+        if update_existing:
+            for name, value in values.items():
+                if name in self._properties:
+                    setattr(self, name, value)
+        else:
+            self.update(**values)
+
+    def to_toml(
+        self, file_path: str | None = None, /, *, values_only: bool = False
+    ) -> str | None:
+        """
+        Serialize configuration to TOML.
+
+        Requires: pip install tomli-w (or pip install tyconf[toml])
+
+        Args:
+            file_path: Optional file path to save (positional-only)
+            values_only: Export only values (keyword-only)
+
+        Returns:
+            TOML string if file_path is None, otherwise None
+
+        Examples:
+            >>> config.to_toml('config.toml')
+            >>> toml_str = config.to_toml()
+        """
+        from .serialization.toml import TOMLSerializer
+
+        serializer = TOMLSerializer()
+        toml_data = serializer.serialize(self, values_only=values_only)
+
+        if file_path:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(toml_data)
+            return None
+
+        return toml_data
+
+    @classmethod
+    def from_toml(
+        cls, source: str, /, *, schema: dict[str, tuple] | None = None
+    ) -> "TyConf":
+        """
+        Load configuration from TOML file or string.
+
+        Built-in support (Python 3.11+), no dependencies.
+
+        Args:
+            source: File path or TOML string (positional-only)
+            schema: Optional schema for validation (keyword-only)
+
+        Returns:
+            New TyConf instance
+
+        Examples:
+            >>> config = TyConf.from_toml('config.toml')
+        """
+        from pathlib import Path
+        from .serialization.toml import TOMLSerializer
+
+        serializer = TOMLSerializer()
+
+        # Check if source is a file path
+        if Path(source).is_file():
+            with open(source, "rb") as f:
+                toml_bytes = f.read()
+        else:
+            toml_bytes = (
+                source.encode("utf-8") if isinstance(source, str) else source
+            )
+
+        data = serializer.deserialize(toml_bytes)
+        return cls.from_dict(data, schema=schema)
+
+    @classmethod
+    def from_env(
+        cls, prefix: str = "", /, *, schema: dict[str, tuple]
+    ) -> "TyConf":
+        """
+        Create TyConf from environment variables.
+
+        Args:
+            prefix: Environment variable prefix (e.g., 'APP_')
+            schema: Property schema {name: (type, default)}
+
+        Returns:
+            New TyConf instance
+
+        Examples:
+            >>> # Environment: APP_HOST=localhost, APP_PORT=8080
+            >>> config = TyConf.from_env('APP_', schema={
+            ...     'host': (str, 'localhost'),
+            ...     'port': (int, 8080)
+            ... })
+        """
+        from .serialization.env import ENVLoader
+
+        # Create config from schema
+        config = cls(**schema)
+
+        # Load from environment
+        loader = ENVLoader()
+        data = loader.load(prefix, schema=schema)
+
+        # Update values
+        for name, value in data.items():
+            if name in config._properties:
+                setattr(config, name, value)
+
+        return config
+
+    def load_env(self, prefix: str = "", /) -> None:
+        """
+        Load environment variables into existing configuration.
+
+        Args:
+            prefix: Environment variable prefix (e.g., 'APP_')
+
+        Examples:
+            >>> config.load_env('APP_')
+        """
+        from .serialization.env import ENVLoader
+
+        # Build schema from existing properties
+        schema = {
+            name: (prop.prop_type, prop.default_value)
+            for name, prop in self._properties.items()
+        }
+
+        loader = ENVLoader()
+        data = loader.load(prefix, schema=schema)
+
+        # Update existing properties
+        for name, value in data.items():
+            if name in self._properties:
+                setattr(self, name, value)
+
     # Special methods for dict-like interface
 
     def __contains__(self, name: str) -> bool:
