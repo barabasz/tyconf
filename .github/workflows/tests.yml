@@ -28,15 +28,15 @@ jobs:
     
     - name: Lint with Ruff
       run: |
-        ruff check src/ tests/
+        ruff check src/ tests/ examples/
     
     - name: Check formatting with Black
       run: |
-        black --check src/ tests/
+        black --check src/ tests/ examples/
     
     - name: Type check with mypy
       run: |
-        mypy src/
+        mypy src/ examples/
     
     - name: Run tests with pytest
       run: |
