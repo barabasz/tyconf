@@ -599,7 +599,7 @@ class TyConf:
 
             # If validator returns bool, check it
             if isinstance(result, bool) and result is False:
-                raise ValueError(f"Property '{name}': validation failed for " f"value {value!r}")
+                raise ValueError(f"Property '{name}': validation failed for value {value!r}")
             # If returns None or True, it's OK
 
         except Exception as e:
@@ -732,6 +732,6 @@ class TyConf:
         """Developer-friendly representation."""
         return f"<TyConf with {len(self._properties)} properties>"
 
-    def __hash__(self) -> None:  # type: ignore[override]
+    def __hash__(self) -> int:
         """TyConf is unhashable (mutable object)."""
         raise TypeError("unhashable type: 'TyConf'")
