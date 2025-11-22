@@ -5,7 +5,7 @@ Provides JSON import/export with full metadata support.
 """
 
 import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from ..core import TyConf
@@ -56,7 +56,7 @@ class JSONSerializer:
             >>> serializer = JSONSerializer()
             >>> data = serializer.deserialize(json_string)
         """
-        return json.loads(data)
+        return cast(JsonDict, json.loads(data))
 
     def _prepare_data(self, config: "TyConf", /, *, values_only: bool = False) -> JsonDict:
         """

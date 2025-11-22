@@ -1,8 +1,8 @@
 """Real-world web application configuration example."""
 
-from tyconf import TyConf
-from typing import Optional
 import os
+
+from tyconf import TyConf  # type: ignore
 
 # Application configuration
 app_config = TyConf(
@@ -16,14 +16,14 @@ app_config = TyConf(
     port=(int, 5000),
     debug=(bool, True),
     workers=(int, 4),
-    # Database (mutable)
-    database_url=(Optional[str], None),
+    # Database (mutable) - ✅ Modern syntax
+    database_url=(str | None, None),
     db_pool_size=(int, 10),
     db_timeout=(int, 30),
-    # Features (mutable)
+    # Features (mutable) - ✅ Modern syntax
     enable_api=(bool, True),
     enable_websocket=(bool, False),
-    rate_limit=(Optional[int], 100),
+    rate_limit=(int | None, 100),
     allowed_origins=(list, ["http://localhost:3000"]),
 )
 
@@ -32,8 +32,10 @@ app_config.debug = os.getenv("DEBUG", "false").lower() == "true"
 app_config.port = int(os.getenv("PORT", "5000"))
 app_config.database_url = os.getenv("DATABASE_URL")
 
-if os.getenv("WORKERS"):
-    app_config.workers = int(os.getenv("WORKERS"))
+# Explicit variable assignment to satisfy MyPy strict checks
+workers_env = os.getenv("WORKERS")
+if workers_env:
+    app_config.workers = int(workers_env)
 
 # Display current configuration
 print(f"Starting {app_config.APP_NAME} v{app_config.VERSION}")
@@ -47,7 +49,7 @@ print(f"\nConfiguration locked: {app_config.frozen}")
 
 
 # Start application (pseudo-code)
-def start_application(config):
+def start_application(config: TyConf) -> None:
     """Start the application with given config."""
     print(f"\n🚀 Server starting on {config.host}:{config.port}")
     print(f"   Debug mode: {config.debug}")

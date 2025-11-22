@@ -32,7 +32,7 @@ from tyconf.validators import range
 config = TyConf(
     VERSION=(str, "1.0.0", True),              # Read-only
     port=(int, 8080, range(1024, 65535)),      # With validator
-    debug=(bool, False)                         # Mutable
+    debug=(bool, False)                        # Mutable
 )
 
 # This will raise ValueError because the name starts with an underscore

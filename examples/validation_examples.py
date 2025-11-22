@@ -1,10 +1,21 @@
 """Examples demonstrating TyConf validators."""
 
-from tyconf import TyConf
-from tyconf.validators import range, length, regex, one_of, all_of, any_of, not_in, contains
+import os
+
+from tyconf import TyConf  # type: ignore
+from tyconf.validators import (  # type: ignore
+    all_of,
+    any_of,
+    contains,
+    length,
+    not_in,
+    one_of,
+    range,
+    regex,
+)
 
 
-def basic_validators_example():
+def basic_validators_example() -> None:
     """Basic validator usage examples."""
     print("=" * 60)
     print("BASIC VALIDATORS")
@@ -78,7 +89,7 @@ def basic_validators_example():
         print(f"   ❌ Error: Property 'username': {e}")
 
 
-def regex_validator_example():
+def regex_validator_example() -> None:
     """Regex validator examples."""
     print("\n" + "=" * 60)
     print("REGEX VALIDATORS")
@@ -110,7 +121,7 @@ def regex_validator_example():
         print(f"   ❌ Error: Property 'phone': {e}")
 
 
-def choice_validator_example():
+def choice_validator_example() -> None:
     """Choice validator examples."""
     print("\n" + "=" * 60)
     print("CHOICE VALIDATORS")
@@ -137,7 +148,7 @@ def choice_validator_example():
     print(f"   Updated to: {config.environment}")
 
 
-def combined_validators_example():
+def combined_validators_example() -> None:
     """Examples of combining multiple validators."""
     print("\n" + "=" * 60)
     print("COMBINED VALIDATORS")
@@ -179,7 +190,7 @@ def combined_validators_example():
         print(f"   ❌ Error (reserved): Property 'port': {e}")
 
 
-def any_of_validator_example():
+def any_of_validator_example() -> None:
     """Examples of any_of validator."""
     print("\n" + "=" * 60)
     print("ANY_OF VALIDATORS (Alternative Validation)")
@@ -215,13 +226,13 @@ def any_of_validator_example():
         print(f"   ❌ Error: Property 'contact': {e}")
 
 
-def custom_validator_example():
+def custom_validator_example() -> None:
     """Examples of custom validator functions."""
     print("\n" + "=" * 60)
     print("CUSTOM VALIDATORS")
     print("=" * 60)
 
-    def validate_password(value):
+    def validate_password(value: str) -> bool:
         """Validate password strength."""
         errors = []
         if len(value) < 8:
@@ -235,7 +246,7 @@ def custom_validator_example():
             raise ValueError(f"must contain: {', '.join(errors)}")
         return True
 
-    def validate_port_range(value):
+    def validate_port_range(value: int) -> bool:
         """Validate port is in valid range and even."""
         if not (1024 <= value <= 65535):
             raise ValueError("port must be between 1024 and 65535")
@@ -271,13 +282,11 @@ def custom_validator_example():
     print(f"   ✓ Port updated to: {config.port}")
 
 
-def real_world_example():
+def real_world_example() -> None:
     """Real-world application configuration with validators."""
     print("\n" + "=" * 60)
     print("REAL-WORLD APPLICATION CONFIGURATION")
     print("=" * 60)
-
-    import os
 
     config = TyConf(
         # Application metadata (readonly, no validators needed)
@@ -317,9 +326,10 @@ def real_world_example():
     print("=" * 60)
 
     # Valid override
-    if os.getenv("PORT"):
+    port_env = os.getenv("PORT")
+    if port_env:
         try:
-            new_port = int(os.getenv("PORT"))
+            new_port: int = int(port_env)
             config.port = new_port
             print(f"✓ Port updated to: {new_port}")
         except ValueError as e:
@@ -340,7 +350,7 @@ def real_world_example():
     print("\n✓ Configuration validated and ready!")
 
 
-def validation_vs_readonly_example():
+def validation_vs_readonly_example() -> None:
     """Show difference between validators and readonly."""
     print("\n" + "=" * 60)
     print("VALIDATORS vs READ-ONLY")

@@ -1,10 +1,13 @@
 """Advanced TyConf features."""
 
-from tyconf import TyConf
-from typing import Optional, Union
+from tyconf import TyConf  # type: ignore
 
-# Optional and Union types
-config = TyConf(api_key=(Optional[str], None), port=(Union[int, str], 8080), timeout=(int, 30))
+# Optional and Union types (Python 3.13+ modern syntax)
+config = TyConf(
+    api_key=(str | None, None),  # ✅ Modern: str | None instead of Optional[str]
+    port=(int | str, 8080),  # ✅ Modern: int | str instead of Union[int, str]
+    timeout=(int, 30),
+)
 
 # Optional can be None or string
 config.api_key = "secret123"

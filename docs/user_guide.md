@@ -21,7 +21,7 @@ Complete guide to using TyConf for type-safe configuration management.
 
 ## Introduction
 
-**TyConf** (Typed Config) is a Python library for managing application configuration with runtime type validation. It provides an intuitive API with both attribute and dict-style access, making it easy to work with configuration in any Python application.
+**TyConf** (Typed Config) is a modern Python library for managing application configuration with runtime type validation. It provides an intuitive API with both attribute and dict-style access, making it easy to work with configuration in any Python application. TyConf requiress Python 3.13+.
 
 ### Why TyConf?
 

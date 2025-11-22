@@ -7,24 +7,24 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+.eggs/
+.installed.cfg
 .Python
+*.egg
+*.egg-info/
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
 lib/
 lib64/
+MANIFEST
 parts/
 sdist/
+share/python-wheels/
 var/
 wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
 # PyInstaller
 *.manifest
@@ -35,19 +35,19 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
+.cache
 .coverage
 .coverage.*
-.cache
-nosetests.xml
-coverage.xml
+.hypothesis/
+.nox/
+.pytest_cache/
+.tox/
 *.cover
 *.py,cover
-.hypothesis/
-.pytest_cache/
 cover/
+coverage.xml
+htmlcov/
+nosetests.xml
 
 # Translations
 *.mo

@@ -1,12 +1,13 @@
 """Examples demonstrating TyConf serialization features."""
 
-import os
 import json
-from tyconf import TyConf
-from tyconf.validators import range
+import os
+
+from tyconf import TyConf  # type: ignore
+from tyconf.validators import range  # type: ignore
 
 
-def json_serialization_example():
+def json_serialization_example() -> None:
     """Demonstrate JSON serialization."""
     print("=" * 60)
     print("JSON SERIALIZATION")
@@ -40,7 +41,7 @@ def json_serialization_example():
     os.remove("config.json")
 
 
-def toml_serialization_example():
+def toml_serialization_example() -> None:
     """Demonstrate TOML serialization."""
     print("\n" + "=" * 60)
     print("TOML SERIALIZATION")
@@ -73,7 +74,7 @@ retry = false
     print(f"   Loaded: database={loaded.database}, timeout={loaded.timeout}")
 
 
-def environment_variables_example():
+def environment_variables_example() -> None:
     """Demonstrate environment variable loading."""
     print("\n" + "=" * 60)
     print("ENVIRONMENT VARIABLES")
@@ -106,7 +107,7 @@ def environment_variables_example():
     del os.environ["APP_DEBUG"]
 
 
-def mixed_sources_example():
+def mixed_sources_example() -> None:
     """Demonstrate loading from multiple sources."""
     print("\n" + "=" * 60)
     print("MIXED SOURCES (Real-world pattern)")
@@ -146,7 +147,7 @@ def mixed_sources_example():
     del os.environ["APP_DEBUG"]
 
 
-def schema_vs_metadata_example():
+def schema_vs_metadata_example() -> None:
     """Explain schema vs metadata formats."""
     print("\n" + "=" * 60)
     print("SCHEMA vs METADATA")

@@ -10,12 +10,17 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+# Type alias for better readability and Mypy compliance
+# A validator takes a value of Any type and returns a bool or raises ValueError
+type Validator = Callable[[Any], bool]
+
+
 # ============================================================================
 # COMBINATOR VALIDATORS - Combine multiple validators
 # ============================================================================
 
 
-def all_of(*validators: Callable) -> Callable:
+def all_of(*validators: Validator) -> Validator:
     """
     Combine multiple validators - all must pass.
 
@@ -24,22 +29,6 @@ def all_of(*validators: Callable) -> Callable:
 
     Returns:
         Combined validator function.
-
-    Raises:
-        ValueError: If any validator fails.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import all_of, length, regex
-        >>> config = TyConf(
-        ...     username=(str, "admin", all_of(
-        ...         length(min_len=3, max_len=20),
-        ...         regex(r'^[a-zA-Z0-9_]+$')
-        ...     ))
-        ... )
-        >>> config.username = "john_doe"  # OK (passes both validators)
-        >>> config.username = "ab"        # ValueError (too short)
-        >>> config.username = "john@doe"  # ValueError (invalid characters)
     """
 
     def validator(value: Any) -> bool:
@@ -50,7 +39,7 @@ def all_of(*validators: Callable) -> Callable:
     return validator
 
 
-def any_of(*validators: Callable) -> Callable:
+def any_of(*validators: Validator) -> Validator:
     """
     Combine multiple validators - at least one must pass.
 
@@ -59,23 +48,6 @@ def any_of(*validators: Callable) -> Callable:
 
     Returns:
         Combined validator function.
-
-    Raises:
-        ValueError: If all validators fail.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import any_of, regex
-        >>> # Accept email OR phone number format
-        >>> config = TyConf(
-        ...     contact=(str, "user@example.com", any_of(
-        ...         regex(r'^[\\w\\.-]+@[\\w\\.-]+\\.\\w+$'),  # email
-        ...         regex(r'^\\+?[0-9]{9,15}$')             # phone
-        ...     ))
-        ... )
-        >>> config.contact = "user@example.com"  # OK (email)
-        >>> config.contact = "+48123456789"      # OK (phone)
-        >>> config.contact = "invalid"           # ValueError (neither)
     """
 
     def validator(value: Any) -> bool:
@@ -98,7 +70,7 @@ def any_of(*validators: Callable) -> Callable:
 # ============================================================================
 
 
-def one_of(*allowed_values: Any) -> Callable:
+def one_of(*allowed_values: Any) -> Validator:
     """
     Validate that a value is one of the allowed values.
 
@@ -107,19 +79,6 @@ def one_of(*allowed_values: Any) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If value is not in the allowed set.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import one_of
-        >>> config = TyConf(
-        ...     log_level=(str, "INFO",
-        ...                one_of("DEBUG", "INFO", "WARNING", "ERROR"))
-        ... )
-        >>> config.log_level = "DEBUG"  # OK
-        >>> config.log_level = "TRACE"  # ValueError
     """
 
     def validator(value: Any) -> bool:
@@ -130,7 +89,7 @@ def one_of(*allowed_values: Any) -> Callable:
     return validator
 
 
-def not_in(*disallowed_values: Any) -> Callable:
+def not_in(*disallowed_values: Any) -> Validator:
     """
     Validate that a value is NOT in the disallowed set.
 
@@ -139,22 +98,6 @@ def not_in(*disallowed_values: Any) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If value is in the disallowed set.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import not_in, all_of, range
-        >>> # Port in valid range but not reserved
-        >>> config = TyConf(
-        ...     port=(int, 8080, all_of(
-        ...         range(1024, 65535),
-        ...         not_in(3000, 5000, 8000)  # reserved ports
-        ...     ))
-        ... )
-        >>> config.port = 8080  # OK
-        >>> config.port = 3000  # ValueError (reserved)
     """
 
     def validator(value: Any) -> bool:
@@ -170,7 +113,7 @@ def not_in(*disallowed_values: Any) -> Callable:
 # ============================================================================
 
 
-def length(min_len: int | None = None, max_len: int | None = None) -> Callable:
+def length(min_len: int | None = None, max_len: int | None = None) -> Validator:
     """
     Validate that a string or collection has length within the specified range.
 
@@ -180,18 +123,6 @@ def length(min_len: int | None = None, max_len: int | None = None) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If length is outside the specified range.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import length
-        >>> config = TyConf(
-        ...     username=(str, "admin", length(min_len=3, max_len=20))
-        ... )
-        >>> config.username = "john"  # OK
-        >>> config.username = "ab"    # ValueError: too short
     """
 
     def validator(value: Any) -> bool:
@@ -205,26 +136,15 @@ def length(min_len: int | None = None, max_len: int | None = None) -> Callable:
     return validator
 
 
-def min_length(min_len: int) -> Callable:
+def min_length(min_len: int) -> Validator:
     """
     Validate that a string or collection has minimum length.
-
-    Simplified version of length() for when only minimum is needed.
 
     Args:
         min_len: Minimum allowed length (inclusive).
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If length is less than minimum.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import min_length
-        >>> config = TyConf(password=(str, "secret123", min_length(8)))
-        >>> config.password = "short"  # ValueError
     """
 
     def validator(value: Any) -> bool:
@@ -235,26 +155,15 @@ def min_length(min_len: int) -> Callable:
     return validator
 
 
-def max_length(max_len: int) -> Callable:
+def max_length(max_len: int) -> Validator:
     """
     Validate that a string or collection has maximum length.
-
-    Simplified version of length() for when only maximum is needed.
 
     Args:
         max_len: Maximum allowed length (inclusive).
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If length exceeds maximum.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import max_length
-        >>> config = TyConf(code=(str, "ABC", max_length(10)))
-        >>> config.code = "VERYLONGCODE"  # ValueError
     """
 
     def validator(value: Any) -> bool:
@@ -270,7 +179,7 @@ def max_length(max_len: int) -> Callable:
 # ============================================================================
 
 
-def contains(substring: str, case_sensitive: bool = True) -> Callable:
+def contains(substring: str, case_sensitive: bool = True) -> Validator:
     """
     Validate that a string contains a specific substring.
 
@@ -280,18 +189,10 @@ def contains(substring: str, case_sensitive: bool = True) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If substring is not found.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import contains
-        >>> config = TyConf(path=(str, "/var/log", contains("/log")))
-        >>> config = TyConf(mode=(str, "DEBUG", contains("debug", case_sensitive=False)))
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
+        # We assume value is str; if not, Python runtime will raise AttributeError
         val_to_check = value if case_sensitive else value.lower()
         sub_to_check = substring if case_sensitive else substring.lower()
 
@@ -305,31 +206,19 @@ def contains(substring: str, case_sensitive: bool = True) -> Callable:
     return validator
 
 
-def starts_with(prefix: str, case_sensitive: bool = True) -> Callable:
+def starts_with(prefix: str, case_sensitive: bool = True) -> Validator:
     """
     Validate that a string starts with the specified prefix.
 
     Args:
         prefix: Required prefix string.
-        case_sensitive: Whether matching should be case-sensitive (default: True).
+        case_sensitive: Whether matching should be case-sensitive.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If string doesn't start with prefix.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import starts_with
-        >>> config = TyConf(
-        ...     api_url=(str, "https://api.example.com", starts_with("https://"))
-        ... )
-        >>> config.api_url = "https://api.test.com"  # OK
-        >>> config.api_url = "http://api.test.com"   # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         val_to_check = value if case_sensitive else value.lower()
         prefix_to_check = prefix if case_sensitive else prefix.lower()
 
@@ -343,31 +232,19 @@ def starts_with(prefix: str, case_sensitive: bool = True) -> Callable:
     return validator
 
 
-def ends_with(suffix: str, case_sensitive: bool = True) -> Callable:
+def ends_with(suffix: str, case_sensitive: bool = True) -> Validator:
     """
     Validate that a string ends with the specified suffix.
 
     Args:
         suffix: Required suffix string.
-        case_sensitive: Whether matching should be case-sensitive (default: True).
+        case_sensitive: Whether matching should be case-sensitive.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If string doesn't end with suffix.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import ends_with
-        >>> config = TyConf(
-        ...     log_file=(str, "app.log", ends_with(".log"))
-        ... )
-        >>> config.log_file = "error.log"  # OK
-        >>> config.log_file = "app.txt"    # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         val_to_check = value if case_sensitive else value.lower()
         suffix_to_check = suffix if case_sensitive else suffix.lower()
 
@@ -381,7 +258,7 @@ def ends_with(suffix: str, case_sensitive: bool = True) -> Callable:
     return validator
 
 
-def regex(pattern: str) -> Callable:
+def regex(pattern: str) -> Validator:
     """
     Validate that a string matches the specified regular expression pattern.
 
@@ -390,23 +267,10 @@ def regex(pattern: str) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If string doesn't match the pattern.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import regex
-        >>> config = TyConf(
-        ...     email=(str, "user@example.com",
-        ...            regex(r'^[\\w\\.-]+@[\\w\\.-]+\\.\\w+$'))
-        ... )
-        >>> config.email = "valid@email.com"  # OK
-        >>> config.email = "invalid-email"    # ValueError
     """
     compiled = re.compile(pattern)
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if not compiled.match(value):
             raise ValueError(f"must match pattern {pattern}")
         return True
@@ -419,25 +283,15 @@ def regex(pattern: str) -> Callable:
 # ============================================================================
 
 
-def is_alpha() -> Callable:
+def is_alpha() -> Validator:
     """
     Validate that a string contains only alphabetic characters.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If string contains non-alphabetic characters.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_alpha
-        >>> config = TyConf(name=(str, "John", is_alpha()))
-        >>> config.name = "Alice"  # OK
-        >>> config.name = "John123"  # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if not value.isalpha():
             raise ValueError("must contain only alphabetic characters")
         return True
@@ -445,25 +299,15 @@ def is_alpha() -> Callable:
     return validator
 
 
-def is_alphanumeric() -> Callable:
+def is_alphanumeric() -> Validator:
     """
     Validate that a string contains only alphanumeric characters.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If string contains non-alphanumeric characters.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_alphanumeric
-        >>> config = TyConf(username=(str, "user123", is_alphanumeric()))
-        >>> config.username = "admin456"  # OK
-        >>> config.username = "user_123"  # ValueError (underscore not allowed)
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if not value.isalnum():
             raise ValueError("must contain only alphanumeric characters")
         return True
@@ -471,25 +315,15 @@ def is_alphanumeric() -> Callable:
     return validator
 
 
-def is_numeric() -> Callable:
+def is_numeric() -> Validator:
     """
     Validate that a string contains only numeric characters.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If string contains non-numeric characters.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_numeric
-        >>> config = TyConf(code=(str, "12345", is_numeric()))
-        >>> config.code = "98765"  # OK
-        >>> config.code = "123abc"  # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if not value.isdigit():
             raise ValueError("must contain only numeric characters")
         return True
@@ -497,25 +331,15 @@ def is_numeric() -> Callable:
     return validator
 
 
-def is_lowercase() -> Callable:
+def is_lowercase() -> Validator:
     """
     Validate that a string contains only lowercase characters.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If string contains uppercase characters.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_lowercase
-        >>> config = TyConf(username=(str, "admin", is_lowercase()))
-        >>> config.username = "johndoe"  # OK
-        >>> config.username = "JohnDoe"  # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if not value.islower():
             raise ValueError("must be lowercase")
         return True
@@ -523,25 +347,15 @@ def is_lowercase() -> Callable:
     return validator
 
 
-def is_uppercase() -> Callable:
+def is_uppercase() -> Validator:
     """
     Validate that a string contains only uppercase characters.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If string contains lowercase characters.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_uppercase
-        >>> config = TyConf(code=(str, "ABC", is_uppercase()))
-        >>> config.code = "XYZ"  # OK
-        >>> config.code = "xyz"  # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if not value.isupper():
             raise ValueError("must be uppercase")
         return True
@@ -549,27 +363,15 @@ def is_uppercase() -> Callable:
     return validator
 
 
-def no_whitespace() -> Callable:
+def no_whitespace() -> Validator:
     """
     Validate that a string contains no whitespace characters.
 
-    Useful for usernames, tokens, identifiers, etc.
-
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If string contains whitespace.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import no_whitespace
-        >>> config = TyConf(username=(str, "admin", no_whitespace()))
-        >>> config.username = "john_doe"  # OK
-        >>> config.username = "john doe"  # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if any(c.isspace() for c in value):
             raise ValueError("must not contain whitespace")
         return True
@@ -582,29 +384,19 @@ def no_whitespace() -> Callable:
 # ============================================================================
 
 
-def range(min_val: int | float | None = None, max_val: int | float | None = None) -> Callable:
+def range(min_val: int | float | None = None, max_val: int | float | None = None) -> Validator:
     """
     Validate that a numeric value is within the specified range.
 
     Args:
-        min_val: Minimum allowed value (inclusive). None means no minimum.
-        max_val: Maximum allowed value (inclusive). None means no maximum.
+        min_val: Minimum allowed value (inclusive).
+        max_val: Maximum allowed value (inclusive).
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If value is outside the specified range.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import range
-        >>> config = TyConf(port=(int, 8080, range(1024, 65535)))
-        >>> config.port = 3000  # OK
-        >>> config.port = 80    # ValueError
     """
 
-    def validator(value: int | float) -> bool:
+    def validator(value: Any) -> bool:
         if min_val is not None and value < min_val:
             raise ValueError(f"must be >= {min_val}")
         if max_val is not None and value > max_val:
@@ -614,31 +406,20 @@ def range(min_val: int | float | None = None, max_val: int | float | None = None
     return validator
 
 
-def between(min_val: int | float, max_val: int | float, inclusive: bool = True) -> Callable:
+def between(min_val: int | float, max_val: int | float, inclusive: bool = True) -> Validator:
     """
     Validate that a numeric value is between min and max.
 
     Args:
         min_val: Minimum value.
         max_val: Maximum value.
-        inclusive: If True, includes boundaries (default: True).
+        inclusive: If True, includes boundaries.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If value is outside range.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import between
-        >>> config = TyConf(
-        ...     percentage=(int, 50, between(0, 100)),
-        ...     temperature=(float, 20.5, between(15.0, 25.0, inclusive=False))
-        ... )
     """
 
-    def validator(value: int | float) -> bool:
+    def validator(value: Any) -> bool:
         if inclusive:
             if not (min_val <= value <= max_val):
                 raise ValueError(f"must be between {min_val} and {max_val} (inclusive)")
@@ -655,26 +436,15 @@ def between(min_val: int | float, max_val: int | float, inclusive: bool = True) 
 # ============================================================================
 
 
-def positive() -> Callable:
+def positive() -> Validator:
     """
     Validate that a number is positive (> 0).
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If number is not positive.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import positive
-        >>> config = TyConf(timeout=(int, 30, positive()))
-        >>> config.timeout = 60   # OK
-        >>> config.timeout = 0    # ValueError
-        >>> config.timeout = -10  # ValueError
     """
 
-    def validator(value: int | float) -> bool:
+    def validator(value: Any) -> bool:
         if value <= 0:
             raise ValueError("must be positive (> 0)")
         return True
@@ -682,25 +452,15 @@ def positive() -> Callable:
     return validator
 
 
-def negative() -> Callable:
+def negative() -> Validator:
     """
     Validate that a number is negative (< 0).
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If number is not negative.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import negative
-        >>> config = TyConf(temperature=(float, -5.0, negative()))
-        >>> config.temperature = -10.0  # OK
-        >>> config.temperature = 0      # ValueError
     """
 
-    def validator(value: int | float) -> bool:
+    def validator(value: Any) -> bool:
         if value >= 0:
             raise ValueError("must be negative (< 0)")
         return True
@@ -708,26 +468,15 @@ def negative() -> Callable:
     return validator
 
 
-def non_negative() -> Callable:
+def non_negative() -> Validator:
     """
     Validate that a number is non-negative (>= 0).
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If number is negative.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import non_negative
-        >>> config = TyConf(count=(int, 0, non_negative()))
-        >>> config.count = 0    # OK
-        >>> config.count = 100  # OK
-        >>> config.count = -1   # ValueError
     """
 
-    def validator(value: int | float) -> bool:
+    def validator(value: Any) -> bool:
         if value < 0:
             raise ValueError("must be non-negative (>= 0)")
         return True
@@ -735,26 +484,15 @@ def non_negative() -> Callable:
     return validator
 
 
-def non_positive() -> Callable:
+def non_positive() -> Validator:
     """
     Validate that a number is non-positive (<= 0).
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If number is positive.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import non_positive
-        >>> config = TyConf(debt=(float, -100.0, non_positive()))
-        >>> config.debt = 0      # OK
-        >>> config.debt = -50.0  # OK
-        >>> config.debt = 10.0   # ValueError
     """
 
-    def validator(value: int | float) -> bool:
+    def validator(value: Any) -> bool:
         if value > 0:
             raise ValueError("must be non-positive (<= 0)")
         return True
@@ -767,7 +505,7 @@ def non_positive() -> Callable:
 # ============================================================================
 
 
-def divisible_by(divisor: int) -> Callable:
+def divisible_by(divisor: int) -> Validator:
     """
     Validate that a number is divisible by the specified divisor.
 
@@ -776,19 +514,9 @@ def divisible_by(divisor: int) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If number is not divisible by divisor.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import divisible_by
-        >>> config = TyConf(port=(int, 8080, divisible_by(10)))
-        >>> config.port = 8080  # OK (divisible by 10)
-        >>> config.port = 8081  # ValueError
     """
 
-    def validator(value: int) -> bool:
+    def validator(value: Any) -> bool:
         if value % divisor != 0:
             raise ValueError(f"must be divisible by {divisor}")
         return True
@@ -796,25 +524,15 @@ def divisible_by(divisor: int) -> Callable:
     return validator
 
 
-def is_even() -> Callable:
+def is_even() -> Validator:
     """
     Validate that a number is even.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If number is not even.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_even
-        >>> config = TyConf(threads=(int, 4, is_even()))
-        >>> config.threads = 8   # OK
-        >>> config.threads = 5   # ValueError
     """
 
-    def validator(value: int) -> bool:
+    def validator(value: Any) -> bool:
         if value % 2 != 0:
             raise ValueError("must be even")
         return True
@@ -822,25 +540,15 @@ def is_even() -> Callable:
     return validator
 
 
-def is_odd() -> Callable:
+def is_odd() -> Validator:
     """
     Validate that a number is odd.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If number is not odd.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_odd
-        >>> config = TyConf(retries=(int, 3, is_odd()))
-        >>> config.retries = 5  # OK
-        >>> config.retries = 4  # ValueError
     """
 
-    def validator(value: int) -> bool:
+    def validator(value: Any) -> bool:
         if value % 2 == 0:
             raise ValueError("must be odd")
         return True
@@ -853,25 +561,12 @@ def is_odd() -> Callable:
 # ============================================================================
 
 
-def non_empty() -> Callable:
+def non_empty() -> Validator:
     """
     Validate that a collection (string, list, dict, etc.) is not empty.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If collection is empty.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import non_empty
-        >>> config = TyConf(
-        ...     tags=(list, ["python"], non_empty()),
-        ...     name=(str, "app", non_empty())
-        ... )
-        >>> config.tags = ["python", "config"]  # OK
-        >>> config.tags = []                     # ValueError
     """
 
     def validator(value: Any) -> bool:
@@ -882,25 +577,15 @@ def non_empty() -> Callable:
     return validator
 
 
-def unique_items() -> Callable:
+def unique_items() -> Validator:
     """
     Validate that all items in a collection are unique.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If collection contains duplicate items.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import unique_items
-        >>> config = TyConf(tags=(list, ["a", "b"], unique_items()))
-        >>> config.tags = ["x", "y", "z"]  # OK
-        >>> config.tags = ["x", "y", "x"]  # ValueError (duplicate 'x')
     """
 
-    def validator(value: list | tuple) -> bool:
+    def validator(value: list[Any] | tuple[Any, ...]) -> bool:
         if len(value) != len(set(value)):
             raise ValueError("all items must be unique")
         return True
@@ -908,7 +593,7 @@ def unique_items() -> Callable:
     return validator
 
 
-def has_items(*required_items: Any) -> Callable:
+def has_items(*required_items: Any) -> Validator:
     """
     Validate that a collection contains all required items.
 
@@ -917,21 +602,9 @@ def has_items(*required_items: Any) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If any required item is missing.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import has_items
-        >>> config = TyConf(
-        ...     features=(list, ["api", "web"], has_items("api"))
-        ... )
-        >>> config.features = ["api", "web", "cli"]  # OK
-        >>> config.features = ["web", "cli"]          # ValueError
     """
 
-    def validator(value: list | tuple | set) -> bool:
+    def validator(value: list[Any] | tuple[Any, ...] | set[Any]) -> bool:
         missing = [item for item in required_items if item not in value]
         if missing:
             raise ValueError(f"must contain items: {missing}")
@@ -940,7 +613,7 @@ def has_items(*required_items: Any) -> Callable:
     return validator
 
 
-def min_items(min_count: int) -> Callable:
+def min_items(min_count: int) -> Validator:
     """
     Validate that a collection has at least minimum number of items.
 
@@ -949,18 +622,9 @@ def min_items(min_count: int) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If collection has fewer items.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import min_items
-        >>> config = TyConf(servers=(list, ["srv1", "srv2"], min_items(2)))
-        >>> config.servers = ["srv1"]  # ValueError
     """
 
-    def validator(value: list | tuple | set | dict) -> bool:
+    def validator(value: list[Any] | tuple[Any, ...] | set[Any] | dict[Any, Any]) -> bool:
         if len(value) < min_count:
             raise ValueError(f"must have at least {min_count} items")
         return True
@@ -968,7 +632,7 @@ def min_items(min_count: int) -> Callable:
     return validator
 
 
-def max_items(max_count: int) -> Callable:
+def max_items(max_count: int) -> Validator:
     """
     Validate that a collection has at most maximum number of items.
 
@@ -977,18 +641,9 @@ def max_items(max_count: int) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If collection has more items.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import max_items
-        >>> config = TyConf(tags=(list, ["a", "b"], max_items(5)))
-        >>> config.tags = ["a", "b", "c", "d", "e", "f"]  # ValueError
     """
 
-    def validator(value: list | tuple | set | dict) -> bool:
+    def validator(value: list[Any] | tuple[Any, ...] | set[Any] | dict[Any, Any]) -> bool:
         if len(value) > max_count:
             raise ValueError(f"must have at most {max_count} items")
         return True
@@ -1001,7 +656,7 @@ def max_items(max_count: int) -> Callable:
 # ============================================================================
 
 
-def has_keys(*required_keys: str) -> Callable:
+def has_keys(*required_keys: str) -> Validator:
     """
     Validate that a dictionary contains all required keys.
 
@@ -1010,19 +665,9 @@ def has_keys(*required_keys: str) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If any required key is missing.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import has_keys
-        >>> config = TyConf(
-        ...     db_config=(dict, {"host": "localhost"}, has_keys("host", "port"))
-        ... )
     """
 
-    def validator(value: dict) -> bool:
+    def validator(value: dict[Any, Any]) -> bool:
         missing = [key for key in required_keys if key not in value]
         if missing:
             raise ValueError(f"must contain keys: {missing}")
@@ -1031,7 +676,7 @@ def has_keys(*required_keys: str) -> Callable:
     return validator
 
 
-def keys_in(*allowed_keys: str) -> Callable:
+def keys_in(*allowed_keys: str) -> Validator:
     """
     Validate that a dictionary contains only allowed keys.
 
@@ -1040,19 +685,9 @@ def keys_in(*allowed_keys: str) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If any key is not allowed.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import keys_in
-        >>> config = TyConf(
-        ...     options=(dict, {"debug": True}, keys_in("debug", "verbose"))
-        ... )
     """
 
-    def validator(value: dict) -> bool:
+    def validator(value: dict[Any, Any]) -> bool:
         invalid = [key for key in value if key not in allowed_keys]
         if invalid:
             raise ValueError(f"invalid keys: {invalid}")
@@ -1066,7 +701,7 @@ def keys_in(*allowed_keys: str) -> Callable:
 # ============================================================================
 
 
-def url_scheme(*schemes: str) -> Callable:
+def url_scheme(*schemes: str) -> Validator:
     """
     Validate that a URL has one of the specified schemes.
 
@@ -1075,21 +710,9 @@ def url_scheme(*schemes: str) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If URL scheme is not in allowed schemes.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import url_scheme
-        >>> config = TyConf(
-        ...     api_url=(str, "https://api.example.com", url_scheme("https"))
-        ... )
-        >>> config.api_url = "https://secure.com"  # OK
-        >>> config.api_url = "http://insecure.com" # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         parsed = urlparse(value)
         if parsed.scheme not in schemes:
             raise ValueError(f"URL scheme must be one of {schemes}, got '{parsed.scheme}'")
@@ -1098,25 +721,15 @@ def url_scheme(*schemes: str) -> Callable:
     return validator
 
 
-def valid_url() -> Callable:
+def valid_url() -> Validator:
     """
     Validate that a string is a valid URL with scheme and netloc.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If URL is invalid.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import valid_url
-        >>> config = TyConf(website=(str, "https://example.com", valid_url()))
-        >>> config.website = "https://example.com"  # OK
-        >>> config.website = "not-a-url"            # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         parsed = urlparse(value)
         if not parsed.scheme or not parsed.netloc:
             raise ValueError("must be a valid URL with scheme and domain")
@@ -1130,23 +743,15 @@ def valid_url() -> Callable:
 # ============================================================================
 
 
-def path_exists() -> Callable:
+def path_exists() -> Validator:
     """
     Validate that a file or directory path exists in the filesystem.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If path does not exist.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import path_exists
-        >>> config = TyConf(config_file=(str, "/etc/app.conf", path_exists()))
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if not Path(value).exists():
             raise ValueError(f"path does not exist: {value}")
         return True
@@ -1154,23 +759,15 @@ def path_exists() -> Callable:
     return validator
 
 
-def is_file() -> Callable:
+def is_file() -> Validator:
     """
     Validate that a path points to an existing file.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If path is not a file.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_file
-        >>> config = TyConf(config_file=(str, "config.json", is_file()))
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         path = Path(value)
         if not path.is_file():
             raise ValueError(f"not a file: {value}")
@@ -1179,23 +776,15 @@ def is_file() -> Callable:
     return validator
 
 
-def is_directory() -> Callable:
+def is_directory() -> Validator:
     """
     Validate that a path points to an existing directory.
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If path is not a directory.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_directory
-        >>> config = TyConf(data_dir=(str, "/var/data", is_directory()))
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         path = Path(value)
         if not path.is_dir():
             raise ValueError(f"not a directory: {value}")
@@ -1204,25 +793,15 @@ def is_directory() -> Callable:
     return validator
 
 
-def is_absolute_path() -> Callable:
+def is_absolute_path() -> Validator:
     """
     Validate that a path is absolute (not relative).
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If path is not absolute.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_absolute_path
-        >>> config = TyConf(install_dir=(str, "/opt/app", is_absolute_path()))
-        >>> config.install_dir = "/usr/local/app"  # OK
-        >>> config.install_dir = "relative/path"   # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if not Path(value).is_absolute():
             raise ValueError("path must be absolute")
         return True
@@ -1230,25 +809,15 @@ def is_absolute_path() -> Callable:
     return validator
 
 
-def is_relative_path() -> Callable:
+def is_relative_path() -> Validator:
     """
     Validate that a path is relative (not absolute).
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If path is not relative.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import is_relative_path
-        >>> config = TyConf(config_path=(str, "config/app.conf", is_relative_path()))
-        >>> config.config_path = "data/file.txt"  # OK
-        >>> config.config_path = "/etc/file.txt"  # ValueError
     """
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         if Path(value).is_absolute():
             raise ValueError("path must be relative")
         return True
@@ -1256,7 +825,7 @@ def is_relative_path() -> Callable:
     return validator
 
 
-def file_extension(*extensions: str) -> Callable:
+def file_extension(*extensions: str) -> Validator:
     """
     Validate that a file path has one of the specified extensions.
 
@@ -1265,24 +834,12 @@ def file_extension(*extensions: str) -> Callable:
 
     Returns:
         Validator function.
-
-    Raises:
-        ValueError: If file extension is not in allowed extensions.
-
-    Examples:
-        >>> from tyconf import TyConf
-        >>> from tyconf.validators import file_extension
-        >>> config = TyConf(
-        ...     config_file=(str, "app.json", file_extension(".json", ".yaml"))
-        ... )
-        >>> config.config_file = "settings.yaml"  # OK
-        >>> config.config_file = "data.xml"       # ValueError
     """
 
     # Normalize extensions to include dot
     normalized = tuple(ext if ext.startswith(".") else f".{ext}" for ext in extensions)
 
-    def validator(value: str) -> bool:
+    def validator(value: Any) -> bool:
         path = Path(value)
         if path.suffix not in normalized:
             raise ValueError(f"file extension must be one of {normalized}")

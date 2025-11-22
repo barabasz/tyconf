@@ -4,7 +4,7 @@
 
 ## What is TyConf?
 
-TyConf is a modern Python library that makes managing application configuration simple, safe, and intuitive. It provides runtime type validation, value validation, read-only properties, and freeze/unfreeze capabilities to help you build robust applications.
+TyConf is a modern Python 3.13+ library that makes managing application configuration simple, safe, and intuitive. It provides runtime type validation, value validation, read-only properties, and freeze/unfreeze capabilities to help you build robust applications.
 
 ## Quick Start
 

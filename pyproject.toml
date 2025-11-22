@@ -56,7 +56,7 @@ Changelog = "https://github.com/barabasz/tyconf/blob/main/CHANGELOG.md"
 
 [tool.black]
 line-length = 100
-target-version = ['py313']
+target-version = ["py313"]
 
 [tool.ruff]
 target-version = "py313"

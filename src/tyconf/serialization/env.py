@@ -3,7 +3,7 @@
 import os
 from typing import Any
 
-type Schema = dict[str, tuple]
+type Schema = dict[str, tuple[type, Any]]
 
 
 class ENVLoader:
@@ -37,7 +37,7 @@ class ENVLoader:
         """
         result = {}
 
-        for prop_name, (prop_type, default_value) in schema.items():
+        for prop_name, (prop_type, _default_value) in schema.items():
             # Construct environment variable name
             env_name = f"{prefix}{prop_name.upper()}"
 

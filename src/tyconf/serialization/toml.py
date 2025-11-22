@@ -6,13 +6,14 @@ Write support: Requires tomli-w (optional dependency)
 """
 
 import tomllib
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from ..core import TyConf
 
 try:
-    import tomli_w
+    import tomli_w  # type: ignore[import-not-found]
+
     HAS_TOML_WRITE = True
 except ImportError:
     HAS_TOML_WRITE = False
@@ -50,7 +51,9 @@ class TOMLSerializer:
             )
 
         data = self._prepare_data(config, values_only=values_only)
-        return tomli_w.dumps(data)
+
+        # Cast Any return from tomli_w to str to satisfy return type
+        return cast(str, tomli_w.dumps(data))
 
     def deserialize(self, data: str | bytes, /) -> TomlDict:
         """
@@ -90,7 +93,8 @@ class TOMLSerializer:
         # Full metadata export
         from .. import __version__
 
-        result = {"_tyconf_version": __version__, "properties": {}}
+        # Explicitly type 'result' to avoid inference issues (e.g., inferring as dict[str, object])
+        result: TomlDict = {"_tyconf_version": __version__, "properties": {}}
 
         for name, prop in config._properties.items():
             prop_data = {

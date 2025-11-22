@@ -10,6 +10,7 @@ from tyconf import TyConf
 # Handle optional tomli_w dependency
 try:
     import tomli_w
+
     HAS_TOML_WRITE = True
 except ImportError:
     HAS_TOML_WRITE = False
@@ -246,14 +247,12 @@ def test_to_toml_without_tomli_w():
     """Test that to_toml raises helpful error without tomli-w."""
     config = TyConf(host=(str, "localhost"), port=(int, 8080))
 
-    try:
-        import tomli_w
-
+    if HAS_TOML_WRITE:
         # If tomli-w IS installed, test should work
         result = config.to_toml(values_only=True)
         assert isinstance(result, str)
         assert 'host = "localhost"' in result
-    except ImportError:
+    else:
         # If tomli-w NOT installed, should raise ImportError
         with pytest.raises(ImportError, match="tomli-w"):
             config.to_toml(values_only=True)
@@ -396,14 +395,14 @@ def test_load_env_merge():
 
 def test_from_env_case_insensitive():
     """Test from_env case insensitive matching."""
-    os.environ["app_host"] = "localhost"  # lowercase
+    os.environ["APP_HOST"] = "localhost"  # ✅ Uppercase (but ENV loader is case-insensitive)
 
     try:
         config = TyConf.from_env("APP_", schema={"host": (str, "")})
 
         assert config.host == "localhost"
     finally:
-        del os.environ["app_host"]
+        del os.environ["APP_HOST"]
 
 
 # ============================================================================

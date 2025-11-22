@@ -1,7 +1,5 @@
 """Tests for TyConf core functionality."""
 
-from typing import Optional, Union
-
 import pytest
 
 from tyconf import TyConf
@@ -142,7 +140,7 @@ def test_type_validation_on_init():
 
 def test_optional_type():
     """Test Optional type support."""
-    cfg = TyConf(api_key=(Optional[str], None))
+    cfg = TyConf(api_key=(str | None, None))
 
     # None is valid
     assert cfg.api_key is None
@@ -158,7 +156,7 @@ def test_optional_type():
 
 def test_optional_type_invalid():
     """Test Optional type rejects wrong types."""
-    cfg = TyConf(api_key=(Optional[str], None))
+    cfg = TyConf(api_key=(str | None, None))
 
     with pytest.raises(TypeError):
         cfg.api_key = 123
@@ -166,7 +164,7 @@ def test_optional_type_invalid():
 
 def test_union_type():
     """Test Union type support."""
-    cfg = TyConf(port=(Union[int, str], 8080))
+    cfg = TyConf(port=(int | str, 8080))
 
     # Int is valid
     cfg.port = 3000
@@ -493,7 +491,7 @@ def test_property_info():
 
     info = cfg.get_property_info("VERSION")
     assert info.name == "VERSION"
-    assert info.prop_type == str
+    assert info.prop_type is str  # ✅ Use 'is' for type comparison
     assert info.default_value == "1.0"
     assert info.readonly is True
 
@@ -504,7 +502,7 @@ def test_property_info_mutable():
 
     info = cfg.get_property_info("debug")
     assert info.name == "debug"
-    assert info.prop_type == bool
+    assert info.prop_type is bool  # ✅ Use 'is' for type comparison
     assert info.default_value is False
     assert info.readonly is False
 
@@ -689,7 +687,7 @@ def test_validate_generic_tuple():
 
 def test_union_with_generics():
     """Test Union containing generic types."""
-    cfg = TyConf(data=(Union[list[int], str], []))
+    cfg = TyConf(data=(list[int] | str, []))
 
     # List should work
     cfg.data = [1, 2, 3]
@@ -706,7 +704,7 @@ def test_union_with_generics():
 
 def test_union_with_none():
     """Test Union with None."""
-    cfg = TyConf(value=(Union[int, None], None))
+    cfg = TyConf(value=(int | None, None))
 
     cfg.value = 42
     assert cfg.value == 42
@@ -800,7 +798,7 @@ def test_empty_collections():
 
 def test_none_values():
     """Test with None as default value."""
-    cfg = TyConf(nullable=(Optional[str], None))
+    cfg = TyConf(nullable=(str | None, None))
 
     assert cfg.nullable is None
     assert cfg.get("nullable") is None

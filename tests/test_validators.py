@@ -136,7 +136,7 @@ def test_any_of_validator():
     # Valid email
     config.contact = "user@example.com"
 
-    # Valid phone
+    # Valid phones
     config.contact = "+48123456789"
     config.contact = "123456789"
 

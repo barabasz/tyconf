@@ -8,37 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2025-01-22
 
 ### Breaking Changes
-- **Python 3.13+ Required** - Minimum Python version increased from 3.10 to 3.13
+- **Python 3.13+ Required** - minimum Python version increased from 3.10 to 3.13
   - Required for built-in `tomllib` support and improved type system features
 
 ### Added
-- **JSON Serialization** - Export and import configurations to/from JSON format
-  - `to_json()` - Export configuration to JSON file or string
-  - `from_json()` - Load configuration from JSON file or string (class method)
-  - `load_json()` - Merge JSON data into existing configuration
-- **TOML Serialization** - Export and import configurations to/from TOML format
-  - `to_toml()` - Export configuration to TOML file or string (requires `tomli-w` package)
-  - `from_toml()` - Load configuration from TOML file or string (class method, built-in via `tomllib`)
-- **Environment Variables Support** - Load configurations from environment variables
-  - `from_env()` - Load configuration from environment variables with type conversion (class method)
-  - `load_env()` - Merge environment variables into existing configuration
-- **Dictionary Serialization** - Low-level dictionary export/import
-  - `to_dict()` - Export configuration to dictionary format
-  - `from_dict()` - Load configuration from dictionary (class method)
-- **Values-Only Export** - Option to export only values without metadata
-  - `values_only` parameter in `to_json()`, `to_toml()`, and `to_dict()` methods
-  - Useful for simpler configuration files and compatibility with other tools
-- **Optional TOML Dependency** - TOML write support via optional dependency
-  - Install with `pip install tyconf[toml]` to enable TOML export functionality
-  - TOML import is built-in (no extra dependency required)
+- JSON & TOML Serialization - Export and import configurations to/from JSON/TOML format
+- `from_env()` - Load configuration from environment variables with type conversion (class method)
+- `load_env()` - Merge environment variables into existing configuration
+- `to_dict()` - Export configuration to dictionary format
+- `from_dict()` - Load configuration from dictionary (class method)
+- Values-Only Export - Option to export only values without metadata
+
+### Changed
+- Environment variables are automatically converted to appropriate types
+- Enhanced documentation with generic types examples
+- Updated API reference with comprehensive type support section
 
 ### Notes
-- **Validators Not Serializable** - Custom validator functions cannot be serialized to JSON/TOML
-  - When loading configurations with validators, provide validators separately using `add()` method
-  - Values-only export/import does not include validator information
-- **Type Conversion** - Environment variables are automatically converted to appropriate types
-  - Supports: `str`, `int`, `float`, `bool`, `list`, `dict`
-  - Boolean conversion: `"true"`, `"yes"`, `"1"` → `True`; `"false"`, `"no"`, `"0"` → `False`
+- Custom validator functions cannot be serialized to JSON/TOML
+- Install with `pip install tyconf[toml]` to enable TOML export functionality
+- When loading configurations with validators, provide validators separately using `add()` method
 
 ## [1.1.2] - 2025-11-22
 
@@ -50,8 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.0] - 2025-11-18
 
+### Breaking Changes
+- **Python 3.10+ Required** - minimum Python version increased from 3.09 to 3.10
+
 ### Added
-- **Value Validation** - Support for validators to check property values beyond type checking
+- Value Validation - Support for validators to check property values beyond type checking
 - Auto-detection of third parameter: `bool` for readonly, `callable` for validator
 - Validation on initialization, assignment, and update operations
 - New tests for validator functionality (test_validators.py)
@@ -64,9 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced `add()` method with validator support
 - Updated `_set_property()` to call validators on value changes
 - Improved error messages for validation failures
-
-### Removed
-- Support for Python 3.9
 
 ### Fixed
 - Validators and readonly are now mutually exclusive (as designed)
@@ -195,8 +184,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **1.2.0** (2025-11-20) - Added serialization/deserialization, required Python 3.13+
 - **1.1.1** (2025-11-20) - Added try_set() method
-- **1.1.0** (2025-11-18) - Added value validation with validators module
+- **1.1.0** (2025-11-18) - Added value validation with validators module, required Python 3.9+
 - **1.0.2** (2025-11-18) - Code refactoring and improvements
 - **1.0.1** (2025-11-18) - Better error messages
 - **1.0.0** (2025-11-18) - Initial stable release with full feature set

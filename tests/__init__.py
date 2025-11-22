@@ -1,1 +1,1 @@
-"""Tests package for TyConf."""
+"""Tests package for TyConf"""

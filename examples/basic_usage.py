@@ -1,6 +1,6 @@
 """Basic TyConf usage examples."""
 
-from tyconf import TyConf
+from tyconf import TyConf  # type: ignore
 
 # Create configuration
 config = TyConf(host=(str, "localhost"), port=(int, 8080), debug=(bool, True))

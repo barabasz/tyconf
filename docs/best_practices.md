@@ -927,6 +927,7 @@ print(config.host)
 - ✅ Validate configuration at startup
 - ✅ Use descriptive names
 - ✅ Use Optional for nullable values
+- ✅ Follow PEP and best practices
 
 **Don't:**
 - ❌ Use generic Any type
