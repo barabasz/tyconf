@@ -24,9 +24,9 @@ class TyConf:
     """
     Type-safe configuration manager with runtime validation.
 
-    TyConf (Typed Config) provides a robust way to manage application configuration
-    with automatic type validation, value validation, read-only properties, and
-    freeze/unfreeze capabilities.
+    TyConf (Typed Config) provides a robust way to manage application
+    configuration with automatic type validation, value validation,
+    read-only properties, and freeze/unfreeze capabilities.
 
     Attributes:
         _properties: Dictionary mapping property names to their descriptors.
@@ -59,25 +59,27 @@ class TyConf:
     _MAX_COLLECTION_ITEMS: int = 5
     _MAX_STRING_LENGTH: int = 50
 
-    def __init__(self, **properties):
+    def __init__(self, **properties: Any) -> None:
         """
         Initialize TyConf with properties.
 
         Args:
             **properties: Keyword arguments where each value is a tuple of:
                          - (type, default_value) - Regular property
-                         - (type, default_value, readonly) - Read-only property when readonly=True
-                         - (type, default_value, validator) - Property with validator (callable)
+                         - (type, default_value, readonly) - Read-only when
+                           readonly=True
+                         - (type, default_value, validator) - Property with
+                           validator (callable)
 
         Raises:
-            TypeError: If property definition is not a tuple/list or third parameter
-                      is neither bool nor callable.
+            TypeError: If property definition is not a tuple/list or third
+                      parameter is neither bool nor callable.
             ValueError: If tuple has wrong number of elements.
 
         Examples:
             >>> config = TyConf(
             ...     VERSION=(str, "1.0.0", True),  # Read-only
-            ...     port=(int, 8080, lambda x: 1024 <= x <= 65535),  # With validator
+            ...     port=(int, 8080, lambda x: 1024 <= x <= 65535),
             ...     debug=(bool, False)  # Regular
             ... )
         """
@@ -92,9 +94,11 @@ class TyConf:
             if not isinstance(prop_def, (tuple, list)):
                 raise TypeError(
                     f"Property '{name}': expected tuple (type, value) or "
-                    f"(type, value, readonly) or (type, value, validator), "
+                    f"(type, value, readonly) or "
+                    f"(type, value, validator), "
                     f"got {type(prop_def).__name__}. "
-                    f"Example: {name}=({type(prop_def).__name__}, {prop_def!r})"
+                    f"Example: {name}=({type(prop_def).__name__}, "
+                    f"{prop_def!r})"
                 )
 
             if len(prop_def) == 2:
@@ -113,13 +117,16 @@ class TyConf:
                     validator = third_param
                 else:
                     raise TypeError(
-                        f"Property '{name}': third parameter must be bool (readonly) "
-                        f"or callable (validator), got {type(third_param).__name__}"
+                        f"Property '{name}': third parameter must be bool "
+                        f"(readonly) or callable (validator), got "
+                        f"{type(third_param).__name__}"
                     )
             else:
                 raise ValueError(
-                    f"Property '{name}': expected tuple of 2 or 3 elements, got {len(prop_def)}. "
-                    f"Valid formats: ({name}=(type, value)), ({name}=(type, value, readonly)), "
+                    f"Property '{name}': expected tuple of 2 or 3 elements, "
+                    f"got {len(prop_def)}. "
+                    f"Valid formats: ({name}=(type, value)), "
+                    f"({name}=(type, value, readonly)), "
                     f"or ({name}=(type, value, validator))"
                 )
 
@@ -132,7 +139,7 @@ class TyConf:
         default_value: Any,
         readonly: bool = False,
         validator: Optional[Callable] = None,
-    ):
+    ) -> None:
         """
         Add a new property to the TyConf.
 
@@ -144,14 +151,17 @@ class TyConf:
             validator: Optional callable to validate property values.
 
         Raises:
-            AttributeError: If TyConf is frozen or property already exists.
-            ValueError: If property name is reserved (starts with '_') or validator fails.
+            AttributeError: If TyConf is frozen or property already
+                exists.
+            ValueError: If property name is reserved (starts with '_')
+                or validator fails.
             TypeError: If default_value doesn't match prop_type.
 
         Examples:
             >>> config = TyConf()
             >>> config.add('host', str, 'localhost')
-            >>> config.add('port', int, 8080, validator=lambda x: 1024 <= x <= 65535)
+            >>> config.add('port', int, 8080,
+            ...            validator=lambda x: 1024 <= x <= 65535)
             >>> config.host
             'localhost'
         """
@@ -190,7 +200,7 @@ class TyConf:
         )
         self._values[name] = default_value
 
-    def remove(self, name: str):
+    def remove(self, name: str) -> None:
         """
         Remove a property from the TyConf.
 
@@ -198,7 +208,8 @@ class TyConf:
             name: Property name to remove.
 
         Raises:
-            AttributeError: If TyConf is frozen, property doesn't exist, or property is read-only.
+            AttributeError: If TyConf is frozen, property doesn't exist,
+                or property is read-only.
 
         Examples:
             >>> config = TyConf(debug=(bool, True))
@@ -212,7 +223,7 @@ class TyConf:
             # Convert KeyError to AttributeError for method-style access
             raise AttributeError(f"Property '{name}' does not exist")
 
-    def update(self, **kwargs):
+    def update(self, **kwargs: Any) -> None:
         """
         Update multiple property values at once.
 
@@ -269,7 +280,8 @@ class TyConf:
             new_config.add(
                 name=name,
                 prop_type=prop.prop_type,
-                default_value=prop.default_value,  # Original default, NOT current value
+                # Original default, NOT current value
+                default_value=prop.default_value,
                 readonly=prop.readonly,
                 validator=prop.validator,
             )
@@ -282,7 +294,7 @@ class TyConf:
 
         return new_config
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset all mutable properties to their default values.
 
@@ -305,7 +317,7 @@ class TyConf:
             if not prop.readonly:
                 self._values[name] = prop.default_value
 
-    def freeze(self):
+    def freeze(self) -> None:
         """
         Freeze the TyConf, preventing all modifications.
 
@@ -317,7 +329,7 @@ class TyConf:
         """
         object.__setattr__(self, "_frozen", True)
 
-    def unfreeze(self):
+    def unfreeze(self) -> None:
         """
         Unfreeze the TyConf, allowing modifications.
 
@@ -335,7 +347,7 @@ class TyConf:
         """Check if TyConf is frozen."""
         return self._frozen
 
-    def show(self):
+    def show(self) -> None:
         """
         Display all properties in a formatted table.
 
@@ -361,7 +373,8 @@ class TyConf:
             formatted_value = self._format_value_for_display(value)
 
             # Format: name = value type
-            print(f"{name:<16} = {formatted_value:<14} {prop.prop_type.__name__}")
+            type_name = prop.prop_type.__name__
+            print(f"{name:<16} = {formatted_value:<14} {type_name}")
 
         print("-" * 44)
 
@@ -425,22 +438,23 @@ class TyConf:
             return self._values[name]
         return default
 
-    def keys(self):
+    def keys(self) -> Any:
         """Return an iterator over property names."""
         return iter(self._properties.keys())
 
-    def values(self):
+    def values(self) -> Any:
         """Return an iterator over property values."""
         return iter(self._values[name] for name in self._properties.keys())
 
-    def items(self):
+    def items(self) -> Any:
         """Return an iterator over (name, value) pairs."""
         return iter((name, self._values[name]) for name in self._properties.keys())
 
     def _set_property(self, name: str, value: Any) -> None:
         """
         Internal helper to set property value with validation.
-        This method contains the shared logic for __setattr__ and __setitem__.
+        This method contains the shared logic for __setattr__ and
+        __setitem__.
 
         Args:
             name: Property name.
@@ -448,7 +462,8 @@ class TyConf:
 
         Raises:
             AttributeError: If TyConf is frozen or property is read-only.
-            KeyError: If property doesn't exist (caller should catch and re-raise appropriately).
+            KeyError: If property doesn't exist (caller should catch and
+                re-raise appropriately).
             TypeError: If value doesn't match property type.
             ValueError: If value fails validator.
         """
@@ -477,14 +492,16 @@ class TyConf:
     def _del_property(self, name: str) -> None:
         """
         Internal helper to delete property safely.
-        This method contains the shared logic for remove() and __delitem__.
+        This method contains the shared logic for remove() and
+        __delitem__.
 
         Args:
             name: Property name to delete.
 
         Raises:
             AttributeError: If TyConf is frozen or property is read-only.
-            KeyError: If property doesn't exist (caller should catch and re-raise appropriately).
+            KeyError: If property doesn't exist (caller should catch and
+                re-raise appropriately).
         """
         if self._frozen:
             raise AttributeError("Cannot delete properties from frozen TyConf")
@@ -501,10 +518,11 @@ class TyConf:
         del self._properties[name]
         del self._values[name]
 
-    def _validate_type(self, name: str, value: Any, expected_type: type):
+    def _validate_type(self, name: str, value: Any, expected_type: type) -> None:
         """
         Validate that a value matches the expected type.
-        Supports Optional, Union and Generics (e.g. list[str], dict[str, int]).
+        Supports Optional, Union and Generics (e.g. list[str],
+        dict[str, int]).
 
         Args:
             name: Property name (for error messages).
@@ -529,14 +547,16 @@ class TyConf:
                     continue
 
                 # Extract base type for generics inside Union
-                # e.g. Union[list[int], str] -> check against list, not list[int]
+                # e.g. Union[list[int], str] -> check against list,
+                # not list[int]
                 check_type = get_origin(arg) or arg
 
                 try:
                     if isinstance(value, check_type):
                         return
                 except TypeError:
-                    # Some types from typing module don't work with isinstance
+                    # Some types from typing module don't work with
+                    # isinstance
                     pass
 
             # If we get here, value doesn't match any union type
@@ -544,7 +564,7 @@ class TyConf:
                 getattr(arg, "__name__", str(arg)) for arg in args if arg is not type(None)
             )
             raise TypeError(
-                f"Property '{name}': expected one of ({type_names}), got {type(value).__name__}"
+                f"Property '{name}': expected one of ({type_names}), " f"got {type(value).__name__}"
             )
 
         # Handle regular types and generics (e.g. list[str] -> list)
@@ -557,7 +577,7 @@ class TyConf:
                 f"Property '{name}': expected {expected_name}, " f"got {type(value).__name__}"
             )
 
-    def _validate_value(self, name: str, value: Any, validator: Callable):
+    def _validate_value(self, name: str, value: Any, validator: Callable) -> None:
         """
         Validate value using validator function.
 
@@ -579,7 +599,7 @@ class TyConf:
 
             # If validator returns bool, check it
             if isinstance(result, bool) and result is False:
-                raise ValueError(f"Property '{name}': validation failed for value {value!r}")
+                raise ValueError(f"Property '{name}': validation failed for " f"value {value!r}")
             # If returns None or True, it's OK
 
         except Exception as e:
@@ -664,7 +684,7 @@ class TyConf:
 
         raise AttributeError(f"TyConf has no property '{name}'")
 
-    def __setattr__(self, name: str, value: Any):
+    def __setattr__(self, name: str, value: Any) -> None:
         """Set property value via attribute access."""
         if name.startswith("_"):
             # Allow setting internal attributes during initialization
@@ -681,7 +701,7 @@ class TyConf:
         """Return number of properties."""
         return len(self._properties)
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         """Iterate over property names."""
         return iter(self._properties.keys())
 
@@ -691,12 +711,12 @@ class TyConf:
             raise KeyError(name)
         return self._values[name]
 
-    def __setitem__(self, name: str, value: Any):
+    def __setitem__(self, name: str, value: Any) -> None:
         """Set property value via dict-style access."""
         # KeyError propagates naturally from _set_property
         self._set_property(name, value)
 
-    def __delitem__(self, name: str):
+    def __delitem__(self, name: str) -> None:
         """Delete property via dict-style access."""
         # KeyError propagates naturally from _del_property
         self._del_property(name)
@@ -712,6 +732,6 @@ class TyConf:
         """Developer-friendly representation."""
         return f"<TyConf with {len(self._properties)} properties>"
 
-    def __hash__(self):
+    def __hash__(self) -> None:  # type: ignore[override]
         """TyConf is unhashable (mutable object)."""
         raise TypeError("unhashable type: 'TyConf'")
