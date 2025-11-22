@@ -9,7 +9,7 @@ from . import validators
 from .core import PropertyDescriptor, TyConf
 
 __all__ = ["TyConf", "PropertyDescriptor", "validators"]
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 __date__ = "2025-01-22"
 __author__ = "barabasz"
 __license__ = "MIT"

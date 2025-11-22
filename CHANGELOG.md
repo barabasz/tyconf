@@ -5,6 +5,13 @@ All notable changes to [TyConf](https://github.com/barabasz/tyconf) will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-01-22
+
+### Fixed
+- type declarations in core.py to comply with MyPy
+- TypeError with Python 3.10+ union syntax (|) by handling types.UnionType
+- OSError: File name too long when passing long strings to deserialization methods
+
 ## [1.2.0] - 2025-01-22
 
 ### Breaking Changes
