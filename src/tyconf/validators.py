@@ -42,7 +42,8 @@ def range(min_val: Optional[int | float] = None, max_val: Optional[int | float] 
 
 def length(min_len: Optional[int] = None, max_len: Optional[int] = None) -> Callable:
     """
-    Validate that a string or collection has length within the specified range.
+    Validate that a string or collection has length within the
+    specified range.
 
     Args:
         min_len: Minimum allowed length (inclusive). None means no minimum.
@@ -57,7 +58,9 @@ def length(min_len: Optional[int] = None, max_len: Optional[int] = None) -> Call
     Examples:
         >>> from tyconf import TyConf
         >>> from tyconf.validators import length
-        >>> config = TyConf(username=(str, "admin", length(min_len=3, max_len=20)))
+        >>> config = TyConf(
+        ...     username=(str, "admin", length(min_len=3, max_len=20))
+        ... )
         >>> config.username = "john"  # OK
         >>> config.username = "ab"    # ValueError: too short
     """
@@ -90,7 +93,8 @@ def regex(pattern: str) -> Callable:
         >>> from tyconf import TyConf
         >>> from tyconf.validators import regex
         >>> config = TyConf(
-        ...     email=(str, "user@example.com", regex(r'^[\\w\\.-]+@[\\w\\.-]+\\.\\w+$'))
+        ...     email=(str, "user@example.com",
+        ...            regex(r'^[\\w\\.-]+@[\\w\\.-]+\\.\\w+$'))
         ... )
         >>> config.email = "valid@email.com"  # OK
         >>> config.email = "invalid-email"    # ValueError
@@ -122,7 +126,8 @@ def one_of(*allowed_values: Any) -> Callable:
         >>> from tyconf import TyConf
         >>> from tyconf.validators import one_of
         >>> config = TyConf(
-        ...     log_level=(str, "INFO", one_of("DEBUG", "INFO", "WARNING", "ERROR"))
+        ...     log_level=(str, "INFO",
+        ...                one_of("DEBUG", "INFO", "WARNING", "ERROR"))
         ... )
         >>> config.log_level = "DEBUG"  # OK
         >>> config.log_level = "TRACE"  # ValueError
