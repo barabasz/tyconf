@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from ..core import TyConf
 
 try:
-    import tomli_w  # type: ignore[import-not-found]
+    import tomli_w
 
     HAS_TOML_WRITE = True
 except ImportError:

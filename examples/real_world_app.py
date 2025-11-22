@@ -2,7 +2,7 @@
 
 import os
 
-from tyconf import TyConf  # type: ignore
+from tyconf import TyConf
 
 # Application configuration
 app_config = TyConf(

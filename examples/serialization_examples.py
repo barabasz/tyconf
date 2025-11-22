@@ -3,8 +3,8 @@
 import json
 import os
 
-from tyconf import TyConf  # type: ignore
-from tyconf.validators import range  # type: ignore
+from tyconf import TyConf
+from tyconf.validators import range
 
 
 def json_serialization_example() -> None:
@@ -27,7 +27,10 @@ def json_serialization_example() -> None:
 
     print("\n2. Export to JSON (full metadata):")
     json_str = config.to_json()
-    print(json_str[:200] + "...")
+
+    # Fix: Check for None before slicing because to_json returns str | None
+    if json_str is not None:
+        print(json_str[:200] + "...")
 
     print("\n3. Save to file:")
     config.to_json("config.json")
@@ -52,7 +55,10 @@ def toml_serialization_example() -> None:
     print("\n1. Export to TOML (values only):")
     try:
         toml_str = config.to_toml(values_only=True)
-        print(toml_str)
+
+        # Fix: Handle optional return type explicitly
+        if toml_str is not None:
+            print(toml_str)
 
         print("\n2. Save to file:")
         config.to_toml("config.toml")

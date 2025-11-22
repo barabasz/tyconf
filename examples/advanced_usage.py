@@ -1,6 +1,6 @@
 """Advanced TyConf features."""
 
-from tyconf import TyConf  # type: ignore
+from tyconf import TyConf
 
 # Optional and Union types (Python 3.13+ modern syntax)
 config = TyConf(

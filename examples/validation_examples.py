@@ -2,8 +2,8 @@
 
 import os
 
-from tyconf import TyConf  # type: ignore
-from tyconf.validators import (  # type: ignore
+from tyconf import TyConf
+from tyconf.validators import (
     all_of,
     any_of,
     contains,
